@@ -19,9 +19,9 @@ In finance, an answer you can't verify isn't useful.
 
 ## The planned approach
 
-- **Agentic retrieval:** an agent will search each company and period separately, compute ratios, then answer, citing every figure to a document and page.
+- **Agentic retrieval:** an agent will search each company and period separately, compute ratios, then answer, citing every figure to its source document and location.
 - **Measured, not assumed:** each retrieval technique (hybrid search, reranking, metadata filters) will be evaluated on FinanceBench with a held-out test split, and its gain reported in a results table.
-- **Any filing:** name a company, form and year in the chat; the filing is fetched from SEC EDGAR and indexed on demand.
+- **Any filing:** name a ticker, form and year in the chat; the filing is fetched from SEC EDGAR and indexed on demand.
 - **Chat UI:** multi-turn conversations with clickable citations and a visible trace of the agent's steps.
 
 ## License

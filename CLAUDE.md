@@ -1,5 +1,5 @@
 # sec-filings-analyst
-Agentic RAG chat over SEC filings (FinanceBench), proven by evals. Read `SPEC.md` first.
+Agentic RAG chat over any company's SEC filings, proven by evals on FinanceBench. Read `SPEC.md` first.
 
 ## Rules
 - Keep PRs ≤ ~200 changed lines (excluding lockfiles and generated eval results). Split bigger work into stacked PRs.
