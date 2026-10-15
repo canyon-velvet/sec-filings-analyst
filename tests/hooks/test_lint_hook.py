@@ -139,7 +139,7 @@ def test_leaves_files_excluded_by_ruff_config_alone(tmp_path):
     assert edited.read_text() == "import os\nx=1\n"
 
 
-def test_keeps_an_import_claude_has_not_used_yet(tmp_path):
+def test_keeps_an_import_claude_has_not_used_yet_but_reports_it(tmp_path):
     project = make_project(tmp_path)
     edited = project / "mod.py"
     edited.write_text("import json\n")
@@ -147,5 +147,19 @@ def test_keeps_an_import_claude_has_not_used_yet(tmp_path):
     result = run_hook(project, edited)
 
     assert result.returncode == 0
-    assert result.stdout == ""
+    assert "F401" in json.loads(result.stdout)["reason"]
     assert edited.read_text() == "import json\n"
+
+
+def test_reports_an_import_its_own_fixes_left_unused(tmp_path):
+    project = make_project(tmp_path)
+    (project / "pyproject.toml").write_text(
+        '[tool.ruff]\ntarget-version = "py312"\n[tool.ruff.lint]\nextend-select = ["UP"]\n'
+    )
+    edited = project / "mod.py"
+    edited.write_text("from typing import Optional\n\nx: Optional[int] = None\n")
+
+    result = run_hook(project, edited)
+
+    assert json.loads(result.stdout)["decision"] == "block"
+    assert "F401" in json.loads(result.stdout)["reason"]
