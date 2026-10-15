@@ -1,0 +1,23 @@
+[project]
+name = "sec-filings-analyst"
+version = "0.1.0"
+description = "Agentic RAG chat over any company's SEC filings, evaluated on FinanceBench"
+requires-python = ">=3.12,<3.13"
+dependencies = []
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[tool.uv]
+package = false
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = ["integration: needs local services (Postgres); excluded from CI"]
