@@ -26,7 +26,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - [ ] Ingest: parse per page → page-bounded chunks (512/64 tok) → embed → store
 - [ ] Retrieval metrics (TDD) + dense-only baseline on dev
 ### Week 2: hybrid (RRF) · reranker · metadata filters · contextual headers · cited answers + answer evals
-### Week 3: agent tools + loop · follow-ups · /chat SSE · chat UI · agent evals
+### Week 3: agent tools (search, calculate) + loop · follow-ups · /chat SSE · chat UI (citations, agent-steps panel) · agent evals
 ### Week 4: CI eval smoke · cost/latency · deploy · README
 
 ## Decisions (date · decision · why)
@@ -47,6 +47,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 
 ## Progress log
 - 2026-10-14 · Repo bootstrapped
+- 2026-10-14 · README (problem + planned approach) added
 
 ## How to resume
 1. Read this file, `git log --oneline -20` and the open `ready-for-agent` issues. 2. Take the first unchecked task.
