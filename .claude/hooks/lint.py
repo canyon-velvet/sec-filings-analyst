@@ -15,9 +15,14 @@ ruff = project / ".venv" / "bin" / "ruff"
 if not ruff.exists():  # project not set up yet (`uv sync` not run)
     sys.exit(0)
 
-check = subprocess.run(
-    [str(ruff), "check", "--fix", "--quiet", file_path], cwd=project, capture_output=True, text=True
+subprocess.run(
+    [str(ruff), "check", "--fix", "--quiet", file_path], cwd=project, capture_output=True
 )
 subprocess.run([str(ruff), "format", "--quiet", file_path], cwd=project)
+# Judge only what's left after both fixing and formatting.
+check = subprocess.run(
+    [str(ruff), "check", "--quiet", file_path], cwd=project, capture_output=True, text=True
+)
 if check.returncode != 0:
-    print(json.dumps({"decision": "block", "reason": "ruff found errors:\n" + check.stdout}))
+    reason = "ruff found errors:\n" + check.stdout + check.stderr  # stderr: ruff/config failures
+    print(json.dumps({"decision": "block", "reason": reason}))

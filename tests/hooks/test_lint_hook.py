@@ -89,3 +89,27 @@ def test_does_nothing_before_the_project_exists(tmp_path):
     assert result.stdout == ""
     assert result.stderr == ""
     assert edited.read_text() == "x=1\n"
+
+
+def test_does_not_block_on_errors_the_formatter_fixes(tmp_path):
+    project = make_project(tmp_path)
+    (project / "pyproject.toml").write_text('[tool.ruff.lint]\nextend-select = ["E501"]\n')
+    edited = project / "mod.py"
+    edited.write_text("x = {" + ", ".join(f'"key{i}": {i}' for i in range(12)) + "}\n")
+
+    result = run_hook(project, edited)
+
+    assert result.returncode == 0
+    assert result.stdout == ""
+
+
+def test_explains_why_when_ruff_itself_fails(tmp_path):
+    project = make_project(tmp_path)
+    (project / "pyproject.toml").write_text('[tool.ruff]\nline-length = "wide"\n')
+    edited = project / "mod.py"
+    edited.write_text("x = 1\n")
+
+    result = run_hook(project, edited)
+
+    assert result.returncode == 0
+    assert "line-length" in json.loads(result.stdout)["reason"]
