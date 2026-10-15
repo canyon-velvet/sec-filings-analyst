@@ -45,13 +45,13 @@ def test_formats_the_edited_python_file(tmp_path):
 def test_auto_fixes_fixable_lint_errors(tmp_path):
     project = make_project(tmp_path)
     edited = project / "mod.py"
-    edited.write_text("import os\n\nx = 1\n")
+    edited.write_text('x = f"a"\n')
 
     result = run_hook(project, edited)
 
     assert result.returncode == 0
     assert result.stdout == ""
-    assert edited.read_text() == "x = 1\n"
+    assert edited.read_text() == 'x = "a"\n'
 
 
 def test_feeds_unfixable_errors_back_to_claude_as_a_block(tmp_path):
@@ -137,3 +137,15 @@ def test_leaves_files_excluded_by_ruff_config_alone(tmp_path):
 
     assert result.stdout == ""
     assert edited.read_text() == "import os\nx=1\n"
+
+
+def test_keeps_an_import_claude_has_not_used_yet(tmp_path):
+    project = make_project(tmp_path)
+    edited = project / "mod.py"
+    edited.write_text("import json\n")
+
+    result = run_hook(project, edited)
+
+    assert result.returncode == 0
+    assert result.stdout == ""
+    assert edited.read_text() == "import json\n"
