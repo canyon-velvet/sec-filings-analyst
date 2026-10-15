@@ -1,0 +1,91 @@
+import json
+import subprocess
+import sys
+from pathlib import Path
+
+HOOK = Path(__file__).parents[2] / ".claude" / "hooks" / "lint.py"
+REAL_RUFF = Path(sys.executable).parent / "ruff"
+
+
+def make_project(tmp_path):
+    """A project dir whose .venv has ruff, like the real one after `uv sync`."""
+    (tmp_path / ".venv" / "bin").mkdir(parents=True)
+    (tmp_path / ".venv" / "bin" / "ruff").symlink_to(REAL_RUFF)
+    return tmp_path
+
+
+def run_hook(project, file_path):
+    payload = {
+        "hook_event_name": "PostToolUse",
+        "cwd": str(project),
+        "tool_name": "Edit",
+        "tool_input": {"file_path": str(file_path)},
+    }
+    return subprocess.run(
+        [sys.executable, str(HOOK)],
+        input=json.dumps(payload),
+        capture_output=True,
+        text=True,
+        env={"CLAUDE_PROJECT_DIR": str(project), "PATH": "/usr/bin:/bin"},
+    )
+
+
+def test_formats_the_edited_python_file(tmp_path):
+    project = make_project(tmp_path)
+    edited = project / "mod.py"
+    edited.write_text("x=1\n")
+
+    result = run_hook(project, edited)
+
+    assert result.returncode == 0
+    assert result.stdout == ""
+    assert edited.read_text() == "x = 1\n"
+
+
+def test_auto_fixes_fixable_lint_errors(tmp_path):
+    project = make_project(tmp_path)
+    edited = project / "mod.py"
+    edited.write_text("import os\n\nx = 1\n")
+
+    result = run_hook(project, edited)
+
+    assert result.returncode == 0
+    assert result.stdout == ""
+    assert edited.read_text() == "x = 1\n"
+
+
+def test_feeds_unfixable_errors_back_to_claude_as_a_block(tmp_path):
+    project = make_project(tmp_path)
+    edited = project / "mod.py"
+    edited.write_text("print(undefined_name)\n")
+
+    result = run_hook(project, edited)
+
+    assert result.returncode == 0
+    output = json.loads(result.stdout)
+    assert output["decision"] == "block"
+    assert "F821" in output["reason"]
+
+
+def test_ignores_non_python_files(tmp_path):
+    project = make_project(tmp_path)
+    edited = project / "Makefile"
+    edited.write_text("x=1\n")
+
+    result = run_hook(project, edited)
+
+    assert result.returncode == 0
+    assert result.stdout == ""
+    assert edited.read_text() == "x=1\n"
+
+
+def test_does_nothing_before_the_project_exists(tmp_path):
+    edited = tmp_path / "mod.py"
+    edited.write_text("x=1\n")
+
+    result = run_hook(tmp_path, edited)
+
+    assert result.returncode == 0
+    assert result.stdout == ""
+    assert result.stderr == ""
+    assert edited.read_text() == "x=1\n"
