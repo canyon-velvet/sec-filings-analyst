@@ -29,7 +29,7 @@ def make_repo(tmp_path, branch="feature"):
     return tmp_path
 
 
-def run_gate(repo, command, gh_output="0", path=None):
+def run_gate(repo, command, gh_output="0"):
     payload = {
         "hook_event_name": "PreToolUse",
         "cwd": str(repo),
@@ -43,16 +43,19 @@ def run_gate(repo, command, gh_output="0", path=None):
         text=True,
         env={
             "CLAUDE_PROJECT_DIR": str(repo),
-            "PATH": path or f"{FAKES}:{os.environ['PATH']}",
+            "PATH": f"{FAKES}:{os.environ['PATH']}",
             "FAKE_GH_OUTPUT": gh_output,
         },
     )
 
 
-def test_says_nothing_about_commands_that_are_not_pushes(tmp_path):
+@pytest.mark.parametrize(
+    "command", ["git commit -m 'push the fix'", 'git commit -m "gate any git push to main"']
+)
+def test_says_nothing_about_commands_that_are_not_pushes(tmp_path, command):
     repo = make_repo(tmp_path)
 
-    result = run_gate(repo, "git commit -m 'push the fix'")
+    result = run_gate(repo, command)
 
     assert result.returncode == 0
     assert result.stdout == ""
@@ -80,6 +83,10 @@ def denial(result):
         ("feature", "git push origin feature:refs/heads/main"),
         ("feature", "git push origin 'main'"),
         ("feature", "git push --all origin"),
+        ("feature", "git push --branches origin"),
+        ("feature", 'git push origin HEAD:"main"'),
+        ("feature", "git --work-tree . push origin main"),
+        ("feature", "git --namespace x push origin main"),
     ],
 )
 def test_denies_a_push_to_main(tmp_path, branch, command):
@@ -126,9 +133,6 @@ def test_stays_silent_on_a_reviewed_push_to_an_unmerged_branch(tmp_path):
 
 
 def test_denies_when_the_gate_itself_fails(tmp_path):
-    repo = make_repo(tmp_path)
-    mark_reviewed(repo)
+    missing_project = tmp_path / "missing"  # running git there raises
 
-    result = run_gate(repo, "git push", path="/usr/bin:/bin")  # no gh on PATH
-
-    assert "failed" in denial(result)
+    assert "failed" in denial(run_gate(missing_project, "git push"))

@@ -2,13 +2,10 @@
 
 import json
 import os
-import re
+import shlex
 import subprocess
 import sys
 from pathlib import Path
-
-# Allows git's global options before `push`, e.g. `git -C path push`, `git -c k=v push`.
-PUSH = re.compile(r"\bgit(?:\s+(?:-[Cc]\s+\S+|-\S+))*\s+push\b")
 
 
 def deny(reason):
@@ -17,25 +14,44 @@ def deny(reason):
     sys.exit(0)
 
 
+def push_args(command):
+    """Args after `push` in any `git ... push ...` simple command, or None if there's no push.
+
+    A `push` token anywhere after `git` counts, so global options (`-C dir`, `--work-tree x`)
+    can't hide it; quoted text like commit messages is one token, so it never matches.
+    """
+    lexer = shlex.shlex(command.replace("\n", ";"), posix=True, punctuation_chars=True)
+    lexer.whitespace_split = True
+    found, segment = None, []
+    for token in [*lexer, ";"]:
+        if token and set(token) <= set(";&|()"):  # end of a simple command
+            after_git = segment[segment.index("git") :] if "git" in segment else []
+            if "push" in after_git:
+                found = (found or []) + after_git[after_git.index("push") + 1 :]
+            segment = []
+        else:
+            segment.append(token)
+    return found
+
+
 def targets_main(arg):
-    """`main`, `'main'`, `+main`, `HEAD:main`, `x:refs/heads/main`, `--all`, `--mirror`."""
-    ref = arg.strip("'\"").split(":")[-1].lstrip("+").removeprefix("refs/heads/")
-    return ref == "main" or arg in ("--all", "--mirror")
+    """`main`, `+main`, `HEAD:main`, `x:refs/heads/main`, `--all`, `--branches`, `--mirror`."""
+    ref = arg.split(":")[-1].lstrip("+").removeprefix("refs/heads/")
+    return ref == "main" or arg in ("--all", "--branches", "--mirror")
 
 
 def main():
     command = json.load(sys.stdin)["tool_input"]["command"]
-    push = PUSH.search(command)
-    if not push:
+    args = push_args(command) if "push" in command else None
+    if args is None:
         return
-    push_args = re.split(r"[;&|]", command[push.end() :])[0].split()
     project = os.environ["CLAUDE_PROJECT_DIR"]
 
     def run(*args):
         return subprocess.run(args, cwd=project, capture_output=True, text=True).stdout.strip()
 
     branch = run("git", "rev-parse", "--abbrev-ref", "HEAD")
-    if branch == "main" or any(targets_main(arg) for arg in push_args):
+    if branch == "main" or any(targets_main(arg) for arg in args):
         deny("Never push to main: push a branch and open a PR.")
 
     marker = Path(project) / ".claude" / "review-ok"
