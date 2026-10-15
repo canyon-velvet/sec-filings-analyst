@@ -91,6 +91,7 @@ def denial(result):
         ("feature", "# Let's ship\ngit push origin main\n# then it's done"),
         ("feature", "echo PR#5 && git push origin main"),
         ("feature", "[ $# -eq 0 ] && git push origin main"),
+        ("feature", "echo \\# ; git push origin main"),
         ("feature", "git push \\\n  origin main"),
         ("feature", "/usr/bin/git push origin main"),
     ],

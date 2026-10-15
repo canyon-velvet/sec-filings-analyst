@@ -27,10 +27,10 @@ def push_args(command):
     """
     command = command.replace("\\\n", " ")  # join continued lines
     # As in bash, only a word-initial `#` starts a comment (`PR#5`, `$#` are text).
-    command = re.sub(r"(?<=[^\s;&|()<>])#", r"\\#", command)
-    # shlex swallows the newline ending a comment; the `;` after it still ends the command.
+    command = re.sub(r"(?<=[^\s;&|()<>\\])#", r"\\#", command)
+    # A `# comment` ends at its line, so quotes in it are inert. shlex swallows the newline
+    # that ends a comment, so this inserted `;` is what ends the command there.
     command = command.replace("\n", "\n;")
-    # Newline is a separator token, so a `# comment` ends at its line (quotes in it are inert).
     lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|()<>\n")
     lexer.whitespace = " \t\r"
     lexer.whitespace_split = True
