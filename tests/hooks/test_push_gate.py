@@ -29,7 +29,7 @@ def make_repo(tmp_path, branch="feature"):
     return tmp_path
 
 
-def run_gate(repo, command, gh_output="0"):
+def run_gate(repo, command, gh_output="0", path=None):
     payload = {
         "hook_event_name": "PreToolUse",
         "cwd": str(repo),
@@ -43,7 +43,7 @@ def run_gate(repo, command, gh_output="0"):
         text=True,
         env={
             "CLAUDE_PROJECT_DIR": str(repo),
-            "PATH": f"{FAKES}:{os.environ['PATH']}",
+            "PATH": path or f"{FAKES}:{os.environ['PATH']}",
             "FAKE_GH_OUTPUT": gh_output,
         },
     )
@@ -74,6 +74,12 @@ def denial(result):
         ("main", "git push"),
         ("feature", "git push origin main"),
         ("feature", "git push origin HEAD:main"),
+        ("feature", "git -C . push origin main"),
+        ("feature", "git -c core.pager=cat push origin main"),
+        ("feature", "git push --force origin +main"),
+        ("feature", "git push origin feature:refs/heads/main"),
+        ("feature", "git push origin 'main'"),
+        ("feature", "git push --all origin"),
     ],
 )
 def test_denies_a_push_to_main(tmp_path, branch, command):
@@ -117,3 +123,12 @@ def test_stays_silent_on_a_reviewed_push_to_an_unmerged_branch(tmp_path):
     mark_reviewed(repo)
 
     assert denial(run_gate(repo, "git push -u origin feature", gh_output="0")) is None
+
+
+def test_denies_when_the_gate_itself_fails(tmp_path):
+    repo = make_repo(tmp_path)
+    mark_reviewed(repo)
+
+    result = run_gate(repo, "git push", path="/usr/bin:/bin")  # no gh on PATH
+
+    assert "failed" in denial(result)
