@@ -6,12 +6,14 @@ Goal: ask questions about the SEC filings of 32 public companies (the [FinanceBe
 
 ## The problem
 
-Answering a simple financial question ("How did Amazon's operating margin change from 2021 to 2022?", "Compare Adobe's and Activision's R&D intensity") means digging through 100+ page 10-Ks and 10-Qs, finding the right table, checking the fiscal year and doing the math yourself.
+Answering a simple financial question ("How did Amazon's operating margin change from FY2017 to FY2019?", "Compare Coca-Cola's and PepsiCo's operating margins in FY2022") means digging through 100+ page 10-Ks and 10-Qs, finding the right table, checking the fiscal year and doing the math yourself.
 
 LLMs don't solve this out of the box:
 
 - **From memory**, they make up numbers and can't cite a source.
-- **With basic retrieval**, they still struggle. Financial documents are dense with tables, nearly identical from year to year, and questions often span several companies. The FinanceBench paper reports that "GPT-4-Turbo used with a retrieval system incorrectly answered or refused to answer 81% of questions."
+- **With basic retrieval**, they still struggle. Financial documents are dense with tables, nearly identical from year to year, and questions often span several companies.
+
+On the FinanceBench benchmark, the paper reports that "GPT-4-Turbo used with a retrieval system incorrectly answered or refused to answer 81% of questions."
 
 In finance, an answer you can't verify isn't useful.
 
