@@ -1,7 +1,6 @@
 # Secrets
 .env
 .env.*
-!.env.example
 
 # Data (FinanceBench PDFs are CC-BY-NC; never commit)
 data/
@@ -18,3 +17,4 @@ node_modules/
 # OS / local
 .DS_Store
 .claude/settings.local.json
+.claude/review-ok

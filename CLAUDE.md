@@ -7,7 +7,7 @@ Agentic RAG chat over any company's SEC filings, proven by evals on FinanceBench
 - Unit tests make no network calls; use the fakes in `tests/fakes/`.
 - Update `SPEC.md` (checkboxes, decisions, progress log) in the same PR as the work.
 - Keep `SPEC.md` under ~100 lines: one line per decision; longer rationale goes in `docs/adr/`.
-- Never read or print `.env`; add new variables to `.env.example`.
+- Never read or print `.env`; add new variables to `env.example`.
 
 ## Workflow
 - Design: use `/mattpocock-skills:codebase-design` for module interfaces and seams, and `/mattpocock-skills:domain-modeling` for terms and decisions (`GLOSSARY.md`, `docs/adr/`).
@@ -15,10 +15,11 @@ Agentic RAG chat over any company's SEC filings, proven by evals on FinanceBench
 - Spec: the user runs `/mattpocock-skills:to-spec` → GitHub issue labelled `ready-for-agent`.
 - Tickets: the user runs `/mattpocock-skills:to-tickets` → vertical-slice issues with blocking links, each one fitting a ≤200-line PR.
 - Build with `/mattpocock-skills:tdd` whenever possible; confirm the seams with the user before writing the first test.
-- Before every `git push`, run all three reviews against `origin/main` and fix what they find. Then write `git rev-parse HEAD` to `.git/claude-review-ok`.
+- Before every `git push`, run all three reviews against `origin/main`, then write `git rev-parse HEAD` to `.claude/review-ok`. The push gate hook denies the push otherwise.
   1. `/mattpocock-skills:code-review`: standards + spec
   2. `/code-review`: correctness bugs
   3. `/security-review`: security
+- Only blocking findings (rule violations, bugs, security issues, factual errors) need a fix and another round of all three reviews. List non-blocking ones in the PR body.
 - PR body: `/mattpocock-skills:pr`, with `Closes #<issue>`.
 
 ## Agent skills

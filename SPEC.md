@@ -21,7 +21,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 ## Milestones
 ### Week 1: foundation & baseline (spec: "Ingestion + dense baseline retrieval eval")
 - [x] Bootstrap repo (git, SPEC, CLAUDE.md)
-- [ ] Python skeleton + ruff lint hook + pre-push review gate
+- [x] Python skeleton + ruff lint hook + pre-push review gate
 - [ ] Postgres + pgvector via Docker; schema
 - [ ] Download FinanceBench + PDFs; dev/test split
 - [ ] Ingest: parse per page → page-bounded chunks (512/64 tok) → embed → store
@@ -42,6 +42,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-14 · pypdfium2 + MIT license · permissive end to end (pymupdf is AGPL)
 - 2026-10-14 · Python at repo root · one project; simple commands, CI and hooks
 - 2026-10-14 · Exact search, no ANN index in week 1 · keeps approximation noise out of the baseline
+- 2026-10-15 · Push gate catches forgotten reviews, not evasion; GitHub ruleset guards main · parsing shell text can't be airtight
 - 2026-10-15 · Any company via EDGAR on demand (built week 4, deployed week 5); FinanceBench stays the eval set · goal is answering questions on any filing; the benchmark proves the pipeline
 
 ## Open questions
@@ -53,6 +54,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-14 · README (problem + planned approach) added
 - 2026-10-15 · Scope widened to any company via EDGAR; week-1 spec published as issue #2
 - 2026-10-15 · uv skeleton, CI (lint + unit tests), ruff lint hook (#4, part 1; push gate next)
+- 2026-10-15 · Push gate hook (no main, reviewed HEAD, no merged-PR branches); `env.example` rename (#4)
 
 ## How to resume
 1. Read this file, `git log --oneline -20` and the open `ready-for-agent` issues. 2. Take the first unchecked task.
