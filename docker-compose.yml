@@ -1,0 +1,20 @@
+# Local Postgres + pgvector. Port 5433 so it doesn't clash with a local Postgres on 5432.
+services:
+  db:
+    image: pgvector/pgvector:0.8.0-pg17
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres # local-only; bound to 127.0.0.1 below
+      POSTGRES_DB: sec_filings
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      # Over TCP: the image's first-start init server listens only on the socket.
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d sec_filings"]
+      interval: 2s
+      retries: 15
+
+volumes:
+  pgdata:
