@@ -1,6 +1,6 @@
 # SEC Filings Analyst
 
-Ask questions about public companies' SEC filings in plain English and get answers that cite the exact document and page.
+Ask questions about the SEC filings of 32 public companies (the [FinanceBench](https://arxiv.org/abs/2311.11944) set) in plain English and get answers that cite the exact document and page.
 
 ## The problem
 
@@ -9,21 +9,17 @@ Answering a simple financial question ("How did Amazon's operating margin change
 LLMs don't solve this out of the box:
 
 - **From memory**, they make up numbers and can't cite a source.
-- **With basic retrieval** ("chat with your PDF"), they still struggle. Financial documents are dense with tables, nearly identical from year to year, and questions often span several companies. On the [FinanceBench](https://arxiv.org/abs/2311.11944) benchmark, *GPT-4-Turbo with a retrieval system answered incorrectly or refused 81% of questions.*
+- **With basic retrieval** ("chat with your PDF"), they still struggle. Financial documents are dense with tables, nearly identical from year to year, and questions often span several companies. The FinanceBench paper reports that "GPT-4-Turbo used with a retrieval system incorrectly answered or refused to answer 81% of questions."
 
 In finance, an answer you can't verify isn't useful.
 
-## The approach
+## The planned approach
 
-- **Agentic retrieval:** an agent searches each company and period separately, computes ratios, then answers, citing every figure to a document and page.
-- **Measured, not assumed:** every retrieval technique (hybrid search, reranking, metadata filters, ...) is evaluated on FinanceBench with a held-out test split, and its gain is reported in a results table.
+- **Agentic retrieval:** an agent will search each company and period separately, compute ratios, then answer, citing every figure to a document and page.
+- **Measured, not assumed:** each retrieval technique (hybrid search, reranking, metadata filters) will be evaluated on FinanceBench with a held-out test split, and its gain reported in a results table.
 - **Chat UI:** multi-turn conversations with clickable citations and a visible trace of the agent's steps.
 
-## Status
-
-🚧 Week 1 of 4: ingestion and a baseline retrieval evaluation. See [SPEC.md](SPEC.md) for the roadmap and decisions.
-
-**Stack:** Python · FastAPI · Postgres + pgvector · OpenAI · React + TypeScript
+🚧 Work in progress. See [SPEC.md](SPEC.md) for the roadmap, stack and decisions.
 
 ## License
 
