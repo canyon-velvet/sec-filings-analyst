@@ -1,13 +1,14 @@
 # SPEC: SEC Filings Analyst
-Chat with an agent about FinanceBench companies' SEC filings; answers cite doc + page.
-Quality is proven by evals. Portfolio project for AI-engineer roles.
+Chat with an agent about any public company's SEC filings; answers cite their source.
+Quality is proven by evals on FinanceBench. Portfolio project for AI-engineer roles.
 
 ## Scope
-- In: FinanceBench companies only · multi-turn chat · multi-company comparisons via agent tools · cited answers · eval harness + ablations
-- Out (for now): adding arbitrary companies (EDGAR) · auth · nightly CI
+- In: multi-turn chat · multi-company comparisons via agent tools · cited answers · eval harness + ablations on FinanceBench ·
+  any company's filing fetched from SEC EDGAR on demand (week 4)
+- Out (for now): bulk pre-ingestion of many filings · user uploads · auth · nightly CI
 
 ## Stack
-Python 3.12 + uv · FastAPI (SSE) · Postgres + pgvector (Docker, :5433) + Postgres FTS · pypdfium2 ·
+Python 3.12 + uv · FastAPI (SSE) · Postgres + pgvector (Docker, :5433) + Postgres FTS · pypdfium2 (PDF; HTML parser TBD in week 4) ·
 OpenAI (text-embedding-3-small, pinned chat snapshot) · local cross-encoder reranker ·
 Vite + React + TS · no LangChain/LlamaIndex
 
@@ -27,19 +28,21 @@ Vite + React + TS · no LangChain/LlamaIndex
 - [ ] Retrieval metrics (TDD) + dense-only baseline on dev
 ### Week 2: hybrid (RRF) · reranker · metadata filters · contextual headers · cited answers + answer evals
 ### Week 3: agent tools (search, calculate) + loop · follow-ups · /chat SSE · chat UI (citations, agent-steps panel) · agent evals
-### Week 4: CI eval smoke · cost/latency · deploy · README
+### Week 4: EDGAR on-demand ingestion (ticker + form + year) · HTML parsing · section-based citations · fetch-filing agent tool
+### Week 5: CI eval smoke · cost/latency · deploy · README results + demo
 
 ## Decisions (date · decision · why)
-- 2026-10-14 · FinanceBench companies only · every answerable question is measurable
+- 2026-10-14 · FinanceBench companies only (superseded 2026-10-15) · every answerable question is measurable
 - 2026-10-14 · Hand-rolled agent tool loop · multi-company comparisons; shows fundamentals
 - 2026-10-14 · pgvector in Docker on :5433 · reproducible; local PG14 lacks pgvector
-- 2026-10-14 · Page-bounded chunks · each chunk maps to one page → clean citations and metrics
+- 2026-10-14 · Page-bounded chunks for PDFs (FinanceBench) · each chunk maps to one page → clean citations and metrics
 - 2026-10-14 · Dev/test split · avoids overfitting the reported numbers
 - 2026-10-14 · No nightly CI · nothing changes without a commit; model snapshots pinned
 - 2026-10-14 · PRs ≤ ~200 lines + 3 reviews before push · easy review
 - 2026-10-14 · pypdfium2 + MIT license · permissive end to end (pymupdf is AGPL)
 - 2026-10-14 · Python at repo root · one project; simple commands, CI and hooks
 - 2026-10-14 · Exact search, no ANN index in week 1 · keeps approximation noise out of the baseline
+- 2026-10-15 · Any company via EDGAR on demand (built week 4, deployed week 5); FinanceBench stays the eval set · goal is answering questions on any filing; the benchmark proves the pipeline
 
 ## Open questions
 - Verify during implementation: FinanceBench page numbers 0- or 1-based (test against evidence_text_full_page) ·
@@ -48,6 +51,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 ## Progress log
 - 2026-10-14 · Repo bootstrapped
 - 2026-10-14 · README (problem + planned approach) added
+- 2026-10-15 · Scope widened to any company via EDGAR; week-1 spec published as issue #2
 
 ## How to resume
 1. Read this file, `git log --oneline -20` and the open `ready-for-agent` issues. 2. Take the first unchecked task.
