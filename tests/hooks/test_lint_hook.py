@@ -113,3 +113,27 @@ def test_explains_why_when_ruff_itself_fails(tmp_path):
 
     assert result.returncode == 0
     assert "line-length" in json.loads(result.stdout)["reason"]
+
+
+def test_ignores_files_outside_the_project(tmp_path):
+    project = make_project(tmp_path / "project")
+    edited = tmp_path / "elsewhere.py"
+    edited.write_text("import os\nx=1\n")
+
+    result = run_hook(project, edited)
+
+    assert result.stdout == ""
+    assert edited.read_text() == "import os\nx=1\n"
+
+
+def test_leaves_files_excluded_by_ruff_config_alone(tmp_path):
+    project = make_project(tmp_path)
+    (project / "pyproject.toml").write_text('[tool.ruff]\nextend-exclude = ["vendor"]\n')
+    (project / "vendor").mkdir()
+    edited = project / "vendor" / "lib.py"
+    edited.write_text("import os\nx=1\n")
+
+    result = run_hook(project, edited)
+
+    assert result.stdout == ""
+    assert edited.read_text() == "import os\nx=1\n"
