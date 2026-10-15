@@ -6,6 +6,7 @@ It catches Claude *forgetting* the reviews, not evading them: pushes hidden in `
 
 import json
 import os
+import re
 import shlex
 import subprocess
 import sys
@@ -25,6 +26,10 @@ def push_args(command):
     can't hide it; quoted text like commit messages is one token, so it never matches.
     """
     command = command.replace("\\\n", " ")  # join continued lines
+    # As in bash, only a word-initial `#` starts a comment (`PR#5`, `$#` are text).
+    command = re.sub(r"(?<=[^\s;&|()<>])#", r"\\#", command)
+    # shlex swallows the newline ending a comment; the `;` after it still ends the command.
+    command = command.replace("\n", "\n;")
     # Newline is a separator token, so a `# comment` ends at its line (quotes in it are inert).
     lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|()<>\n")
     lexer.whitespace = " \t\r"

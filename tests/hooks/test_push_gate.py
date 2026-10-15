@@ -89,6 +89,8 @@ def denial(result):
         ("feature", "git --namespace x push origin main"),
         ("feature", "# deploy\ngit push origin main"),
         ("feature", "# Let's ship\ngit push origin main\n# then it's done"),
+        ("feature", "echo PR#5 && git push origin main"),
+        ("feature", "[ $# -eq 0 ] && git push origin main"),
         ("feature", "git push \\\n  origin main"),
         ("feature", "/usr/bin/git push origin main"),
     ],
@@ -130,7 +132,12 @@ def test_denies_a_push_to_a_branch_whose_pr_is_merged(tmp_path, gh_output):
 
 
 @pytest.mark.parametrize(
-    "command", ["git push -u origin feature", "git push -u origin feature  # then a PR to main"]
+    "command",
+    [
+        "git push -u origin feature",
+        "git push -u origin feature  # then a PR to main",
+        "git push -u origin feature  # then\ngh pr create --base main",
+    ],
 )
 def test_stays_silent_on_a_reviewed_push_to_an_unmerged_branch(tmp_path, command):
     repo = make_repo(tmp_path)
