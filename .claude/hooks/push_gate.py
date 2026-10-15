@@ -24,13 +24,14 @@ def push_args(command):
     A `push` token anywhere after `git` counts, so global options (`-C dir`, `--work-tree x`)
     can't hide it; quoted text like commit messages is one token, so it never matches.
     """
-    command = command.replace("\\\n", " ").replace("\n", ";")  # join continued lines
-    lexer = shlex.shlex(command, posix=True, punctuation_chars=True)
+    command = command.replace("\\\n", " ")  # join continued lines
+    # Newline is a separator token, so a `# comment` ends at its line (quotes in it are inert).
+    lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|()<>\n")
+    lexer.whitespace = " \t\r"
     lexer.whitespace_split = True
-    lexer.commenters = ""  # a `#` line must not hide the commands after it
     found, segment = None, []
     for token in [*lexer, ";"]:
-        if token and set(token) <= set(";&|()"):  # end of a simple command
+        if token and set(token) <= set(";&|()\n"):  # end of a simple command
             names = [Path(word).name for word in segment]  # `/usr/bin/git` -> `git`
             after_git = segment[names.index("git") :] if "git" in names else []
             if "push" in after_git:

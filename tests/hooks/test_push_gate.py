@@ -88,6 +88,7 @@ def denial(result):
         ("feature", "git --work-tree . push origin main"),
         ("feature", "git --namespace x push origin main"),
         ("feature", "# deploy\ngit push origin main"),
+        ("feature", "# Let's ship\ngit push origin main\n# then it's done"),
         ("feature", "git push \\\n  origin main"),
         ("feature", "/usr/bin/git push origin main"),
     ],
@@ -128,11 +129,14 @@ def test_denies_a_push_to_a_branch_whose_pr_is_merged(tmp_path, gh_output):
     assert "merged" in denial(run_gate(repo, "git push", gh_output=gh_output))
 
 
-def test_stays_silent_on_a_reviewed_push_to_an_unmerged_branch(tmp_path):
+@pytest.mark.parametrize(
+    "command", ["git push -u origin feature", "git push -u origin feature  # then a PR to main"]
+)
+def test_stays_silent_on_a_reviewed_push_to_an_unmerged_branch(tmp_path, command):
     repo = make_repo(tmp_path)
     mark_reviewed(repo)
 
-    assert denial(run_gate(repo, "git push -u origin feature", gh_output="0")) is None
+    assert denial(run_gate(repo, command, gh_output="0")) is None
 
 
 def test_denies_when_the_gate_itself_fails(tmp_path):
