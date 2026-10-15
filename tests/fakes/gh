@@ -1,0 +1,3 @@
+#!/bin/sh
+# Fake `gh` for offline tests: prints whatever the test put in FAKE_GH_OUTPUT.
+echo "$FAKE_GH_OUTPUT"
