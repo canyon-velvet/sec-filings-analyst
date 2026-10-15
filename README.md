@@ -2,7 +2,7 @@
 
 🚧 Work in progress. See [SPEC.md](SPEC.md) for the roadmap, stack and decisions.
 
-Goal: ask questions about the SEC filings of 32 public companies (the [FinanceBench](https://arxiv.org/abs/2311.11944) open sample) in plain English and get answers that cite the exact document and page.
+Goal: ask questions about any public company's SEC filings in plain English and get answers that cite the exact document and location. Quality is measured on the [FinanceBench](https://arxiv.org/abs/2311.11944) open sample (32 companies, 150 questions with labeled evidence).
 
 ## The problem
 
@@ -21,6 +21,7 @@ In finance, an answer you can't verify isn't useful.
 
 - **Agentic retrieval:** an agent will search each company and period separately, compute ratios, then answer, citing every figure to a document and page.
 - **Measured, not assumed:** each retrieval technique (hybrid search, reranking, metadata filters) will be evaluated on FinanceBench with a held-out test split, and its gain reported in a results table.
+- **Any filing:** name a company, form and year in the chat; the filing is fetched from SEC EDGAR and indexed on demand.
 - **Chat UI:** multi-turn conversations with clickable citations and a visible trace of the agent's steps.
 
 ## License

@@ -1,10 +1,11 @@
 # SPEC: SEC Filings Analyst
-Chat with an agent about FinanceBench companies' SEC filings; answers cite doc + page.
-Quality is proven by evals. Portfolio project for AI-engineer roles.
+Chat with an agent about any public company's SEC filings; answers cite their source.
+Quality is proven by evals on FinanceBench. Portfolio project for AI-engineer roles.
 
 ## Scope
-- In: FinanceBench companies only · multi-turn chat · multi-company comparisons via agent tools · cited answers · eval harness + ablations
-- Out (for now): adding arbitrary companies (EDGAR) · auth · nightly CI
+- In: multi-turn chat · multi-company comparisons via agent tools · cited answers · eval harness + ablations on FinanceBench ·
+  any company's filing fetched from SEC EDGAR on demand (week 4)
+- Out (for now): bulk pre-ingestion of many filings · user uploads · auth · nightly CI
 
 ## Stack
 Python 3.12 + uv · FastAPI (SSE) · Postgres + pgvector (Docker, :5433) + Postgres FTS · pypdfium2 ·
@@ -27,10 +28,12 @@ Vite + React + TS · no LangChain/LlamaIndex
 - [ ] Retrieval metrics (TDD) + dense-only baseline on dev
 ### Week 2: hybrid (RRF) · reranker · metadata filters · contextual headers · cited answers + answer evals
 ### Week 3: agent tools (search, calculate) + loop · follow-ups · /chat SSE · chat UI (citations, agent-steps panel) · agent evals
-### Week 4: CI eval smoke · cost/latency · deploy · README
+### Week 4: EDGAR on-demand ingestion (ticker + form + year) · HTML parsing · section-based citations · coverage tool
+### Week 5: CI eval smoke · cost/latency · deploy · README results + demo
 
 ## Decisions (date · decision · why)
-- 2026-10-14 · FinanceBench companies only · every answerable question is measurable
+- 2026-10-14 · FinanceBench as the eval set · labeled evidence pages make retrieval measurable
+- 2026-10-15 · Any company via EDGAR on demand (week 4; ship week 5) · goal is answering questions on any filing; FinanceBench proves the pipeline
 - 2026-10-14 · Hand-rolled agent tool loop · multi-company comparisons; shows fundamentals
 - 2026-10-14 · pgvector in Docker on :5433 · reproducible; local PG14 lacks pgvector
 - 2026-10-14 · Page-bounded chunks · each chunk maps to one page → clean citations and metrics
@@ -48,6 +51,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 ## Progress log
 - 2026-10-14 · Repo bootstrapped
 - 2026-10-14 · README (problem + planned approach) added
+- 2026-10-15 · Scope widened to any company via EDGAR; spec #2 (week 1) published
 
 ## How to resume
 1. Read this file, `git log --oneline -20` and the open `ready-for-agent` issues. 2. Take the first unchecked task.
