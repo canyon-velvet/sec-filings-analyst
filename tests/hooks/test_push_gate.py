@@ -87,6 +87,9 @@ def denial(result):
         ("feature", 'git push origin HEAD:"main"'),
         ("feature", "git --work-tree . push origin main"),
         ("feature", "git --namespace x push origin main"),
+        ("feature", "# deploy\ngit push origin main"),
+        ("feature", "git push \\\n  origin main"),
+        ("feature", "/usr/bin/git push origin main"),
     ],
 )
 def test_denies_a_push_to_main(tmp_path, branch, command):

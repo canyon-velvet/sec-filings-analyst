@@ -42,6 +42,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-14 · pypdfium2 + MIT license · permissive end to end (pymupdf is AGPL)
 - 2026-10-14 · Python at repo root · one project; simple commands, CI and hooks
 - 2026-10-14 · Exact search, no ANN index in week 1 · keeps approximation noise out of the baseline
+- 2026-10-15 · Push gate catches forgotten reviews, not evasion; GitHub ruleset guards main · parsing shell text can't be airtight
 - 2026-10-15 · Any company via EDGAR on demand (built week 4, deployed week 5); FinanceBench stays the eval set · goal is answering questions on any filing; the benchmark proves the pipeline
 
 ## Open questions

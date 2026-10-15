@@ -1,4 +1,8 @@
-"""PreToolUse hook: deny unreviewed `git push`es. Never allows; silent for anything else."""
+"""PreToolUse hook: deny unreviewed `git push`es. Never allows; silent for anything else.
+
+It catches Claude *forgetting* the reviews, not evading them: pushes hidden in `bash -c`,
+`eval` or backticks get through. GitHub's `protect-main` ruleset blocks direct pushes to main.
+"""
 
 import json
 import os
@@ -20,12 +24,15 @@ def push_args(command):
     A `push` token anywhere after `git` counts, so global options (`-C dir`, `--work-tree x`)
     can't hide it; quoted text like commit messages is one token, so it never matches.
     """
-    lexer = shlex.shlex(command.replace("\n", ";"), posix=True, punctuation_chars=True)
+    command = command.replace("\\\n", " ").replace("\n", ";")  # join continued lines
+    lexer = shlex.shlex(command, posix=True, punctuation_chars=True)
     lexer.whitespace_split = True
+    lexer.commenters = ""  # a `#` line must not hide the commands after it
     found, segment = None, []
     for token in [*lexer, ";"]:
         if token and set(token) <= set(";&|()"):  # end of a simple command
-            after_git = segment[segment.index("git") :] if "git" in segment else []
+            names = [Path(word).name for word in segment]  # `/usr/bin/git` -> `git`
+            after_git = segment[names.index("git") :] if "git" in names else []
             if "push" in after_git:
                 found = (found or []) + after_git[after_git.index("push") + 1 :]
             segment = []
