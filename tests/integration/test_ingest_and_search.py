@@ -36,6 +36,7 @@ def test_ingest_refuses_a_pdf_without_text_and_stores_nothing(db, tmp_path):
     blank = pypdfium2.PdfDocument.new()
     blank.new_page(612, 792)
     blank.save(scanned)
+    blank.close()
 
     with pytest.raises(ValueError, match="ACME_2023_10K"):
         ingest(scanned, ACME, WordHashEmbedder(), db)

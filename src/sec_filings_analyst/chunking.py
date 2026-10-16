@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Protocol
 
 import pypdfium2
+import tiktoken
 
 from sec_filings_analyst.documents import Chunk, Document
 
@@ -12,11 +13,25 @@ OVERLAP_TOKENS = 64
 
 
 class Tokenizer(Protocol):
-    """Counts tokens like the embedding model; tiktoken's cl100k_base fits as is."""
+    """Counts tokens like the embedding model."""
 
     def encode(self, text: str) -> list[int]: ...
 
     def decode(self, tokens: list[int]) -> str: ...
+
+
+class Cl100kTokenizer:
+    """text-embedding-3-small's tokenizer. First use downloads its vocabulary once."""
+
+    def __init__(self):
+        self._encoding = tiktoken.get_encoding("cl100k_base")
+
+    def encode(self, text: str) -> list[int]:
+        # Plain encode() raises on text such as "<|endoftext|>"; a filing's text is never special.
+        return self._encoding.encode_ordinary(text)
+
+    def decode(self, tokens: list[int]) -> str:
+        return self._encoding.decode(tokens)
 
 
 def parse_pages(pdf: Path) -> list[str]:

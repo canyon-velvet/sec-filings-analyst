@@ -44,6 +44,8 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-14 · Exact search, no ANN index in week 1 · keeps approximation noise out of the baseline
 - 2026-10-15 · Push gate catches forgotten reviews, not evasion; GitHub ruleset guards main · parsing shell text can't be airtight
 - 2026-10-15 · Cosine distance (`<=>`) for search · OpenAI recommends it; ranks like inner product on normalized vectors but stays correct for test vectors
+- 2026-10-16 · Chunk tokens counted with cl100k_base (`encode_ordinary`) · same tokenizer as text-embedding-3-small, so counts match the embedder
+- 2026-10-16 · Refuse PDFs without text (scans) · a missing Document would silently lower retrieval scores
 - 2026-10-15 · Any company via EDGAR on demand (built week 4, deployed week 5); FinanceBench stays the eval set · goal is answering questions on any filing; the benchmark proves the pipeline
 
 ## Open questions
