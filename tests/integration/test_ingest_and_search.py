@@ -33,10 +33,9 @@ def test_ingest_refuses_a_connection_that_might_not_commit(db):
 
 def test_ingest_refuses_a_pdf_without_text_and_stores_nothing(db, tmp_path):
     scanned = tmp_path / "scanned.pdf"  # one blank Page, like a scan with no text layer
-    blank = pypdfium2.PdfDocument.new()
-    blank.new_page(612, 792)
-    blank.save(scanned)
-    blank.close()
+    with pypdfium2.PdfDocument.new() as blank:
+        blank.new_page(612, 792)
+        blank.save(scanned)
 
     with pytest.raises(ValueError, match="ACME_2023_10K"):
         ingest(scanned, ACME, WordHashEmbedder(), db)

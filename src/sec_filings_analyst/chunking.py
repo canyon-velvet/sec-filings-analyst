@@ -1,5 +1,6 @@
 """Parse-and-chunk: a PDF becomes Page-bounded Chunks of at most 512 tokens, overlapping by 64."""
 
+from contextlib import closing
 from pathlib import Path
 from typing import Protocol
 
@@ -36,32 +37,20 @@ class Cl100kTokenizer:
 
 def parse_pages(pdf: Path) -> list[str]:
     """Text of each Page; Page n is at index n - 1."""
-    document = pypdfium2.PdfDocument(pdf)
-    try:
-        texts = []
+    texts = []
+    with pypdfium2.PdfDocument(pdf) as document:
         for page in document:  # close each Page as we go: 10-Ks run to hundreds of Pages
-            textpage = page.get_textpage()
-            texts.append(textpage.get_text_range())
-            textpage.close()
-            page.close()
-        return texts
-    finally:
-        document.close()
+            # PdfPage and PdfTextPage have close() but aren't context managers.
+            with closing(page), closing(page.get_textpage()) as textpage:
+                texts.append(textpage.get_text_range())
+    return texts
 
 
-def count_pages(pdf: Path) -> int:
-    """Reads only the page tree, not the text."""
-    document = pypdfium2.PdfDocument(pdf)
-    try:
-        return len(document)
-    finally:
-        document.close()
-
-
-def chunk_pdf(pdf: Path, document: Document, tokenizer: Tokenizer) -> list[Chunk]:
-    """Chunks in Page order; a Chunk never spans two Pages, and empty Pages give none."""
+def chunk_pages(pages: list[str], document: Document, tokenizer: Tokenizer) -> list[Chunk]:
+    """Chunks in Page order, from parse_pages' output; a Chunk never spans two Pages, and empty
+    Pages give none."""
     chunks = []
-    for page, text in enumerate(parse_pages(pdf), start=1):
+    for page, text in enumerate(pages, start=1):
         if not text.strip():
             continue
         tokens = tokenizer.encode(text)
