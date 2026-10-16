@@ -47,11 +47,11 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-15 · Cosine distance (`<=>`) for search · OpenAI recommends it; ranks like inner product on normalized vectors but stays correct for test vectors
 - 2026-10-16 · Chunk tokens counted with cl100k_base (`encode_ordinary`) · same tokenizer as text-embedding-3-small, so counts match the embedder
 - 2026-10-16 · Refuse PDFs without text (scans) · a missing Document would silently lower retrieval scores
+- 2026-10-16 · FinanceBench pinned: HF dataset revision + PDFs from its GitHub repo at a fixed commit · every run scores the same inputs
 - 2026-10-15 · Any company via EDGAR on demand (built week 4, deployed week 5); FinanceBench stays the eval set · goal is answering questions on any filing; the benchmark proves the pipeline
 
 ## Open questions
-- Verify during implementation: FinanceBench page numbers 0- or 1-based (test against evidence_text_full_page) ·
-  PDFs present in FinanceBench's GitHub repo
+- Verify during implementation: FinanceBench page numbers 0- or 1-based (test against evidence_text_full_page)
 
 ## Progress log
 - 2026-10-14 · Repo bootstrapped
@@ -63,6 +63,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-15 · Tracer bullet: fixture PDF → pypdfium2 Pages → fake Embedder → Postgres → `Retriever.search`; GLOSSARY.md (#6)
 - 2026-10-16 · Page-bounded chunking, 512 tokens with 64 overlap (cl100k_base); text-less PDFs refused (#7)
 - 2026-10-16 · Retrieval scoring: `score()` → Hit@1/5/10, Recall@10, MRR@10 per Question, per type, overall (#8)
+- 2026-10-16 · `make data`: FinanceBench Questions (Doc types normalized, e.g. 10k → 10-K) + 84 PDFs, pinned (#9, part 1)
 
 ## How to resume
 1. Read this file, `git log --oneline -20` and the open `ready-for-agent` issues. 2. Take the first unchecked task.
