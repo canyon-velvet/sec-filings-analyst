@@ -18,7 +18,7 @@ def db():
     with psycopg.connect(DEV_URL, autocommit=True) as admin:
         admin.execute(f"DROP DATABASE IF EXISTS {TEST_DB}")
         admin.execute(f"CREATE DATABASE {TEST_DB}")
-    with psycopg.connect(make_conninfo(DEV_URL, dbname=TEST_DB)) as conn:
+    with psycopg.connect(make_conninfo(DEV_URL, dbname=TEST_DB), autocommit=True) as conn:
         conn.execute(SCHEMA.read_text())
         yield conn
     with psycopg.connect(DEV_URL, autocommit=True) as admin:

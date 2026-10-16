@@ -4,8 +4,8 @@ from dataclasses import dataclass
 
 import psycopg
 
+from sec_filings_analyst.documents import Document
 from sec_filings_analyst.embedder import Embedder, to_pgvector
-from sec_filings_analyst.ingest import Document
 
 
 @dataclass(frozen=True)
@@ -17,7 +17,9 @@ class Chunk:
 
 
 class Retriever:
-    """Dense-only, exact (no approximate index) cosine search over every stored Chunk."""
+    """Dense-only, exact (no approximate index) cosine search over every stored Chunk.
+
+    Needs an autocommit connection, so searches never hold a transaction open."""
 
     def __init__(self, conn: psycopg.Connection, embedder: Embedder):
         self._conn = conn

@@ -3,7 +3,8 @@ from pathlib import Path
 import pytest
 from fakes.embedder import WordHashEmbedder
 
-from sec_filings_analyst.ingest import Document, ingest
+from sec_filings_analyst.documents import Document
+from sec_filings_analyst.ingest import ingest
 from sec_filings_analyst.retriever import Retriever
 
 pytestmark = pytest.mark.integration
@@ -20,3 +21,10 @@ def test_search_ranks_the_page_that_matches_the_query_first(db):
 
     assert [(r.document, r.page) for r in results] == [(ACME, 3), (ACME, 1)]
     assert results[0].text == "Long-term debt was reduced by 300 million dollars."
+
+
+def test_ingest_refuses_a_connection_that_might_not_commit(db):
+    db.autocommit = False
+
+    with pytest.raises(ValueError, match="autocommit"):
+        ingest(FIXTURE, ACME, WordHashEmbedder(), db)
