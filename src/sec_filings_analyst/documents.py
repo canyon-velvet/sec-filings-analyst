@@ -1,4 +1,4 @@
-"""Document: one company report and its metadata, whatever format it came in."""
+"""Document and Chunk: what gets stored and searched, whatever format the Document came in."""
 
 from dataclasses import dataclass
 
@@ -9,3 +9,12 @@ class Document:
     company: str
     doc_type: str  # 10-K, 10-Q, 8-K, Earnings
     fiscal_year: int
+
+
+@dataclass(frozen=True)
+class Chunk:
+    document: Document
+    page: int  # 1-based
+    position: int  # order within the Page, from 0
+    text: str
+    token_count: int  # in the embedding model's tokenizer
