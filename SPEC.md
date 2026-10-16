@@ -42,6 +42,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-14 · pypdfium2 + MIT license · permissive end to end (pymupdf is AGPL)
 - 2026-10-14 · Python at repo root · one project; simple commands, CI and hooks
 - 2026-10-14 · Exact search, no ANN index in week 1 · keeps approximation noise out of the baseline
+- 2026-10-15 · Code in `src/sec_filings_analyst/` (uv_build package) · imports don't depend on the cwd; `python -m` works
 - 2026-10-15 · Push gate catches forgotten reviews, not evasion; GitHub ruleset guards main · parsing shell text can't be airtight
 - 2026-10-15 · Cosine distance (`<=>`) for search · OpenAI recommends it; ranks like inner product on normalized vectors but stays correct for test vectors
 - 2026-10-16 · Chunk tokens counted with cl100k_base (`encode_ordinary`) · same tokenizer as text-embedding-3-small, so counts match the embedder
@@ -61,6 +62,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-15 · Postgres + pgvector (Docker :5433), `make db-up` / `make db-reset`, documents + chunks schema (#5)
 - 2026-10-15 · Tracer bullet: fixture PDF → pypdfium2 Pages → fake Embedder → Postgres → `Retriever.search`; GLOSSARY.md (#6)
 - 2026-10-16 · Page-bounded chunking, 512 tokens with 64 overlap (cl100k_base); text-less PDFs refused (#7)
+- 2026-10-16 · Retrieval scoring: `score()` → Hit@1/5/10, Recall@10, MRR@10 per Question, per type, overall (#8)
 
 ## How to resume
 1. Read this file, `git log --oneline -20` and the open `ready-for-agent` issues. 2. Take the first unchecked task.
