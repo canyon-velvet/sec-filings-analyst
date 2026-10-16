@@ -6,7 +6,7 @@ from statistics import mean
 
 @dataclass(frozen=True)
 class Page:
-    document: str
+    document_name: str  # FinanceBench doc_name, e.g. 3M_2018_10K, like Document.name
     number: int  # 1-based
 
 
