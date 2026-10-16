@@ -30,7 +30,7 @@ class Retriever:
         (embedding,) = self._embedder.embed([query])
         rows = self._conn.execute(
             "SELECT d.name, d.company, d.doc_type, d.fiscal_year, c.page, c.text,"
-            " 1 - (c.embedding <=> %(q)s::vector)"
+            " 1 - (c.embedding <=> %(q)s::vector) AS score"
             " FROM chunks c JOIN documents d ON d.id = c.document_id"
             " ORDER BY c.embedding <=> %(q)s::vector, c.id LIMIT %(k)s",
             {"q": to_pgvector(embedding), "k": k},
