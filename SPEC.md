@@ -23,7 +23,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - [x] Bootstrap repo (git, SPEC, CLAUDE.md)
 - [x] Python skeleton + ruff lint hook + pre-push review gate
 - [x] Postgres + pgvector via Docker; schema
-- [ ] Download FinanceBench + PDFs; dev/test split
+- [x] Download FinanceBench + PDFs; dev/test split
 - [ ] Ingest: parse per page → page-bounded chunks (512/64 tok) → embed → store
 - [ ] Retrieval metrics (TDD) + dense-only baseline on dev
 ### Week 2: hybrid (RRF) · reranker · metadata filters · contextual headers · cited answers + answer evals
@@ -64,6 +64,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-16 · Page-bounded chunking, 512 tokens with 64 overlap (cl100k_base); text-less PDFs refused (#7)
 - 2026-10-16 · Retrieval scoring: `score()` → Hit@1/5/10, Recall@10, MRR@10 per Question, per type, overall (#8)
 - 2026-10-16 · `make data`: FinanceBench Questions (Doc types normalized, e.g. 10k → 10-K) + 84 PDFs, pinned (#9, part 1)
+- 2026-10-16 · `make split`: `eval/splits/financebench_v1.json`, 50 dev (17/17/16 by type) / 100 test, seed 2026 (#9)
 
 ## How to resume
 1. Read this file, `git log --oneline -20` and the open `ready-for-agent` issues. 2. Take the first unchecked task.
