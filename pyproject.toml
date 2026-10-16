@@ -5,13 +5,15 @@ description = "Agentic RAG chat over any company's SEC filings, evaluated on Fin
 requires-python = ">=3.12,<3.13"
 dependencies = [
     "psycopg[binary]>=3.2",
+    "pypdfium2>=5",
 ]
 
 [dependency-groups]
 dev = ["pytest>=8", "ruff>=0.6"]
 
-[tool.uv]
-package = false
+[build-system]
+requires = ["uv_build>=0.9,<0.10"]
+build-backend = "uv_build"
 
 [tool.ruff]
 line-length = 100
@@ -22,4 +24,5 @@ select = ["E", "F", "I", "B", "UP"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["tests"]  # for `from fakes...`
 markers = ["integration: needs local services (Postgres); excluded from CI"]
