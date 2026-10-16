@@ -1,3 +1,4 @@
+from http.client import IncompleteRead
 from pathlib import Path
 
 import pytest
@@ -61,8 +62,12 @@ def test_skips_files_already_downloaded(tmp_path):
 
 @pytest.mark.parametrize(
     "amcor_pdfs",
-    [{}, {AMCOR.name: b"<html>Rate limit exceeded</html>"}],
-    ids=["fetch fails", "not a PDF"],
+    [
+        {},
+        {AMCOR.name: IncompleteRead(b"%PDF-1.4 Amc", expected=10)},
+        {AMCOR.name: b"<html>Rate limit exceeded</html>"},
+    ],
+    ids=["fetch fails", "connection drops mid-download", "not a PDF"],
 )
 def test_a_failed_document_raises_naming_it_and_leaves_no_file(tmp_path, amcor_pdfs):
     fetch = fetcher_serving({MMM.name: b"%PDF-1.4 3M"} | amcor_pdfs)

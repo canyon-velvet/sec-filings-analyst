@@ -1,5 +1,6 @@
 """FinanceBench open sample: its 150 Questions and the 84 Documents they ask about."""
 
+import http.client
 import json
 import urllib.request
 from collections.abc import Callable
@@ -32,7 +33,7 @@ class Question:
 
 def load_questions(jsonl: Path) -> list[Question]:
     """Questions in file order, with Doc types normalized (10k → 10-K)."""
-    with jsonl.open() as rows:
+    with jsonl.open(encoding="utf-8") as rows:
         return [_question(json.loads(row)) for row in rows]
 
 
@@ -69,7 +70,7 @@ def download(data_dir: Path, fetch: Callable[[str], bytes]) -> None:
 def _fetch_pdf(document: Document, fetch: Callable[[str], bytes]) -> bytes:
     try:
         content = fetch(PDF_URL.format(name=document.name))
-    except OSError as error:
+    except (OSError, http.client.HTTPException) as error:  # e.g. 404, timeout, dropped connection
         raise RuntimeError(f"{document.name}: download failed: {error}") from error
     if not content.startswith(b"%PDF-"):  # e.g. an HTML error page served with status 200
         raise RuntimeError(f"{document.name}: download is not a PDF")
