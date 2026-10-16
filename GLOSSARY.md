@@ -23,7 +23,8 @@ One page of a Document, numbered from 1 as a person reads the PDF.
 _Avoid_: page index (0-based)
 
 **Chunk**:
-A span of text from exactly one Page, stored with its embedding; the unit the Retriever returns.
+A span of text from exactly one Page, at most 512 tokens, stored with its embedding.
+The Retriever returns Chunks ranked by similarity to the query, each with its score.
 _Avoid_: passage, snippet, segment
 
 ### Evaluation
