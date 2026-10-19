@@ -25,7 +25,8 @@ data:
 split:
 	uv run python -m sec_filings_analyst.split
 
-# Embeds and stores every downloaded Document not stored yet (needs make data, make db-up and
-# OPENAI_API_KEY in .env). Shows the token count and cost and asks before calling OpenAI.
+# Embeds and stores every downloaded Document not stored yet (needs make data, make db-up,
+# make db-reset once for the schema, and OPENAI_API_KEY in .env). Shows the token count and
+# cost and asks before calling OpenAI.
 ingest:
 	uv run --env-file .env python -m sec_filings_analyst.ingest

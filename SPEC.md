@@ -50,6 +50,9 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-16 · FinanceBench pinned: HF dataset revision + PDFs from its GitHub repo at a fixed commit · every run scores the same inputs
 - 2026-10-19 · FinanceBench `evidence_page_num` is 0-based; `load_questions` adds 1 · all 189 full-page evidence texts match our parsed Page at num + 1 (≥ 0.95 similarity), none at num
 - 2026-10-19 · Embeddings requested 256 texts at a time · stays under OpenAI's 300k-tokens-per-request cap with 512-token Chunks
+- 2026-10-19 · `make ingest` shows tokens + estimated cost and asks before any embedding request · money is never spent by accident
+- 2026-10-19 · Ingest skips Documents already stored (by name), one transaction each · a rerun resumes without paying twice; after a chunking change, `make db-reset` first
+- 2026-10-19 · `CHECK` on `documents.doc_type` (10-K, 10-Q, 8-K, Earnings) · a value that skipped normalization fails loudly
 - 2026-10-15 · Any company via EDGAR on demand (built week 4, deployed week 5); FinanceBench stays the eval set · goal is answering questions on any filing; the benchmark proves the pipeline
 
 ## Open questions

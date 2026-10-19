@@ -4,7 +4,6 @@ import os
 from collections.abc import Callable
 from pathlib import Path
 
-import openai
 import psycopg
 
 from sec_filings_analyst.chunking import Cl100kTokenizer, chunk_pages, parse_pages
@@ -94,6 +93,8 @@ def _ask(summary: str) -> bool:
 
 
 if __name__ == "__main__":
+    import openai  # here, so importing this module doesn't load the SDK (see embedder.py)
+
     data = Path("data/financebench")
     questions = load_questions(data / "financebench_merged.jsonl")
     pdfs = {q.document: data / "pdfs" / f"{q.document.name}.pdf" for q in questions}
