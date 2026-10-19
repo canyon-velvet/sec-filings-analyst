@@ -1,4 +1,4 @@
-.PHONY: lint test test-integration db-up db-reset data
+.PHONY: lint test test-integration db-up db-reset data split
 
 lint:
 	uv run ruff check .
@@ -20,3 +20,7 @@ db-reset:
 # FinanceBench Questions and PDFs into data/financebench/ (gitignored: CC-BY-NC); reruns skip what's there.
 data:
 	uv run python -m sec_filings_analyst.financebench
+
+# The committed dev/test Split (needs `make data`); refuses to overwrite an existing version.
+split:
+	uv run python -m sec_filings_analyst.split
