@@ -1,8 +1,9 @@
 """Embedder: turns a batch of texts into vectors. Knows nothing about where the texts came from."""
 
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 
-import openai
+if TYPE_CHECKING:  # the SDK is heavy; only OpenAIEmbedder's caller needs it loaded
+    import openai
 
 EMBEDDING_MODEL = "text-embedding-3-small"  # pinned: 1536 dims, tokenized with cl100k_base
 # OpenAI caps a request at 300k tokens; 256 Chunks of ≤ 512 tokens stay under 132k.
@@ -23,7 +24,7 @@ def to_pgvector(vector: list[float]) -> str:
 class OpenAIEmbedder:
     """Embeds with OpenAI, BATCH_SIZE texts per request; no request for no texts."""
 
-    def __init__(self, client: openai.OpenAI):
+    def __init__(self, client: "openai.OpenAI"):
         self._client = client
 
     def embed(self, texts: list[str]) -> list[list[float]]:
