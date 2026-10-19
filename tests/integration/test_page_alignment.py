@@ -2,6 +2,7 @@ import json
 import random
 import re
 from difflib import SequenceMatcher
+from functools import cache
 from pathlib import Path
 
 import pytest
@@ -25,12 +26,17 @@ def similarity(a: str, b: str) -> float:
     return SequenceMatcher(None, a, b, autojunk=False).ratio()
 
 
+@cache  # a Document asked about by two sampled Questions is parsed once
+def parsed_pages(doc_name: str) -> list[str]:
+    return parse_pages(DATA / "pdfs" / f"{doc_name}.pdf")
+
+
 def test_full_page_evidence_text_matches_our_parsed_page_at_each_evidence_page():
     with JSONL.open(encoding="utf-8") as rows:
-        questions = [json.loads(row) for row in rows]
+        questions = [json.loads(row) for row in rows]  # FinanceBench's raw rows
     mismatches = []
     for question in random.Random(SAMPLE_SEED).sample(questions, 20):
-        pages = parse_pages(DATA / "pdfs" / f"{question['doc_name']}.pdf")
+        pages = parsed_pages(question["doc_name"])
         for evidence in question["evidence"]:
             number = evidence_page(evidence["evidence_page_num"])
             parsed = pages[number - 1] if number <= len(pages) else ""
