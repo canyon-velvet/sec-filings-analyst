@@ -28,11 +28,11 @@ class Question:
     document: Document
     text: str
     answer: str
-    evidence_pages: frozenset[int]  # as FinanceBench numbers them; #10 aligns them with Pages
+    evidence_pages: frozenset[int]  # Page numbers, 1-based like our Pages
 
 
 def load_questions(jsonl: Path) -> list[Question]:
-    """Questions in file order, with Doc types normalized (10k → 10-K)."""
+    """Questions in file order; Doc types normalized (10k → 10-K), Evidence pages 1-based."""
     with jsonl.open(encoding="utf-8") as rows:
         return [_question(json.loads(row)) for row in rows]
 
@@ -47,8 +47,13 @@ def _question(row: dict) -> Question:
         document=document,
         text=row["question"],
         answer=row["answer"],
-        evidence_pages=frozenset(e["evidence_page_num"] for e in row["evidence"]),
+        evidence_pages=frozenset(evidence_page(e["evidence_page_num"]) for e in row["evidence"]),
     )
+
+
+def evidence_page(evidence_page_num: int) -> int:
+    """The Page FinanceBench means: it numbers pages from 0, Pages start at 1."""
+    return evidence_page_num + 1
 
 
 def download(data_dir: Path, fetch: Callable[[str], bytes]) -> None:
