@@ -1,4 +1,4 @@
-.PHONY: lint test test-integration db-up db-reset data split
+.PHONY: lint test test-integration db-up db-reset data split ingest
 
 lint:
 	uv run ruff check .
@@ -24,3 +24,8 @@ data:
 # The committed dev/test Split (needs `make data`); refuses to overwrite an existing version.
 split:
 	uv run python -m sec_filings_analyst.split
+
+# Embeds and stores every downloaded Document not stored yet (needs make data, make db-up and
+# OPENAI_API_KEY in .env). Shows the token count and cost and asks before calling OpenAI.
+ingest:
+	uv run --env-file .env python -m sec_filings_analyst.ingest

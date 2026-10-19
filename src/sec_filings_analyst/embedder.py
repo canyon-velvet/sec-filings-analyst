@@ -6,6 +6,7 @@ if TYPE_CHECKING:  # the SDK is heavy; only OpenAIEmbedder's caller needs it loa
     import openai
 
 EMBEDDING_MODEL = "text-embedding-3-small"  # pinned: 1536 dims, tokenized with cl100k_base
+PRICE_PER_MILLION_TOKENS = 0.02  # USD, EMBEDDING_MODEL's list price
 # OpenAI caps a request at 300k tokens; 256 Chunks of ≤ 512 tokens stay under 132k.
 BATCH_SIZE = 256
 
