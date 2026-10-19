@@ -1,4 +1,4 @@
-.PHONY: lint test test-integration db-up db-reset
+.PHONY: lint test test-integration db-up db-reset data
 
 lint:
 	uv run ruff check .
@@ -16,3 +16,7 @@ db-up:
 # Drops and recreates the schema in the dev database (all data can be rebuilt).
 db-reset:
 	docker compose exec -T db psql -q -U postgres -d sec_filings -v ON_ERROR_STOP=1 < db/schema.sql
+
+# FinanceBench Questions and PDFs into data/financebench/ (gitignored: CC-BY-NC); reruns skip what's there.
+data:
+	uv run python -m sec_filings_analyst.financebench
