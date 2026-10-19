@@ -26,4 +26,4 @@ select = ["E", "F", "I", "B", "UP"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["tests"]  # for `from fakes...`
-markers = ["integration: needs local services (Postgres); excluded from CI"]
+markers = ["integration: needs local services (Postgres) or data (make data); excluded from CI"]

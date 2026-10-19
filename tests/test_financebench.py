@@ -28,8 +28,9 @@ def test_loads_questions_with_their_document_and_evidence_pages():
         document=MMM,
         text="What was 3M's FY2018 capital expenditure?",
         answer="$1,577 million",
-        evidence_pages=frozenset({59, 60}),
+        evidence_pages=frozenset({60, 61}),  # FinanceBench numbers pages from 0: 59, 60
     )
+    assert questions[1].evidence_pages == {1}  # FinanceBench's page 0 is the first Page
     assert [q.document for q in questions] == [MMM, MMM, AMCOR]  # doc_type 10k → 10-K, 8k → 8-K
 
 
