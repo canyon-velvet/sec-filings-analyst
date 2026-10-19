@@ -7,10 +7,11 @@ from pathlib import Path
 import pytest
 
 from sec_filings_analyst.chunking import parse_pages
-from sec_filings_analyst.financebench import load_questions
+from sec_filings_analyst.financebench import evidence_page
 
 DATA = Path(__file__).parents[2] / "data" / "financebench"
 JSONL = DATA / "financebench_merged.jsonl"
+SAMPLE_SEED = 10  # any fixed value: the same 20 Questions every run
 
 pytestmark = [
     pytest.mark.integration,
@@ -26,17 +27,14 @@ def similarity(a: str, b: str) -> float:
 
 def test_full_page_evidence_text_matches_our_parsed_page_at_each_evidence_page():
     with JSONL.open(encoding="utf-8") as rows:
-        evidence = [json.loads(row)["evidence"] for row in rows]
-    pairs = list(zip(load_questions(JSONL), evidence, strict=True))  # both in file order
+        questions = [json.loads(row) for row in rows]
     mismatches = []
-    for question, items in random.Random(10).sample(pairs, 20):
-        pages = parse_pages(DATA / "pdfs" / f"{question.document.name}.pdf")
-        for item in items:
-            # evidence_pages is a set, so the item's text should match one of its Pages.
-            best = max(
-                similarity(item["evidence_text_full_page"], pages[number - 1])
-                for number in question.evidence_pages
-            )
-            if best < 0.9:  # every Evidence page matched at ≥ 0.95 when this was settled (#10)
-                mismatches.append(f"{question.id} {sorted(question.evidence_pages)}: {best:.2f}")
+    for question in random.Random(SAMPLE_SEED).sample(questions, 20):
+        pages = parse_pages(DATA / "pdfs" / f"{question['doc_name']}.pdf")
+        for evidence in question["evidence"]:
+            number = evidence_page(evidence["evidence_page_num"])
+            parsed = pages[number - 1] if number <= len(pages) else ""
+            score = similarity(evidence["evidence_text_full_page"], parsed)
+            if score < 0.9:  # every Evidence page matched at ≥ 0.95 when this was settled (#10)
+                mismatches.append(f"{question['financebench_id']} Page {number}: {score:.2f}")
     assert mismatches == []
