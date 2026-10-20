@@ -47,24 +47,23 @@ def test_a_run_saves_metrics_and_per_question_ranks_and_adds_a_results_row(tmp_p
 
 def test_each_run_adds_a_row_and_a_reused_experiment_and_split_is_refused(tmp_path):
     run_eval("dense-baseline", "dev", QUESTIONS, FakeRetriever(HITS), {}, tmp_path)
-    run_eval(
-        "dense-baseline", "test", QUESTIONS[:1], FakeRetriever(HITS), {}, tmp_path
-    )  # tuned → reported
+    # The same experiment, tuned on dev, then reported on test
+    run_eval("dense-baseline", "test", QUESTIONS[:1], FakeRetriever(HITS), {}, tmp_path)
     saved = {p: p.read_text() for p in [*tmp_path.rglob("*.json"), tmp_path / "RESULTS.md"]}
     retriever = FakeRetriever(HITS)
 
     with pytest.raises(FileExistsError):
         run_eval("dense-baseline", "test", QUESTIONS, retriever, {}, tmp_path)
-    with pytest.raises(ValueError, match="week2/hybrid"):  # would hide in a folder the table skips
+    # A folder in the name could collide with another Split's run (Splits are folders too)
+    with pytest.raises(ValueError, match="week2/hybrid"):
         run_eval("week2/hybrid", "dev", QUESTIONS, retriever, {}, tmp_path)
 
     assert retriever.ks == []
     assert {p: p.read_text() for p in saved} == saved
     table = saved[tmp_path / "RESULTS.md"]
     assert "| dense-baseline | test | 1.00 | 1.00 | 1.00 | 0.50 | 1.00 | 1 |" in table
-    assert (
-        "| dense-baseline | test | – | 1.00 | – |" in table
-    )  # its one Question is metrics-generated
+    # Its one Question is metrics-generated
+    assert "| dense-baseline | test | – | 1.00 | – |" in table
 
 
 RESULTS_WITH_BASELINE = """\

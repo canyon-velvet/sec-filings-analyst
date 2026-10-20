@@ -57,9 +57,9 @@ def run_eval(
         },
     }
     path.parent.mkdir(parents=True, exist_ok=True)
+    text = json.dumps(run, indent=2) + "\n"  # serialized first: a failure can't leave half a file
     with path.open("x") as file:
-        json.dump(run, file, indent=2)
-        file.write("\n")
+        file.write(text)
     run_files = sorted((eval_dir / "runs").rglob("*.json"))
     (eval_dir / "RESULTS.md").write_text(_results_table(run_files))
 

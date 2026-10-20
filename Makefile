@@ -32,6 +32,7 @@ ingest:
 	uv run --env-file .env python -m sec_filings_analyst.ingest
 
 # Scores the stored corpus on a Split, e.g. make eval SPLIT=dev EXPERIMENT=dense-baseline: saves
-# eval/runs/<split>/$(EXPERIMENT).json (never overwritten) and regenerates eval/RESULTS.md.
+# eval/runs/financebench_v1/$(SPLIT)/$(EXPERIMENT).json (never overwritten) and regenerates
+# eval/RESULTS.md.
 eval:
 	uv run --env-file .env python -m sec_filings_analyst.evaluation $(SPLIT) $(EXPERIMENT)
