@@ -8,7 +8,7 @@ CREATE TABLE documents (
     id serial PRIMARY KEY,
     name text NOT NULL UNIQUE,  -- FinanceBench doc_name, e.g. 3M_2018_10K
     company text NOT NULL,
-    doc_type text NOT NULL,     -- 10-K, 10-Q, 8-K, Earnings
+    doc_type text NOT NULL CHECK (doc_type IN ('10-K', '10-Q', '8-K', 'Earnings')),
     fiscal_year int NOT NULL,
     page_count int NOT NULL
 );

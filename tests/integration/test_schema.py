@@ -1,3 +1,4 @@
+import psycopg
 import pytest
 
 pytestmark = pytest.mark.integration
@@ -36,3 +37,11 @@ def test_has_no_approximate_nearest_neighbor_index(db):
     ).fetchall()
 
     assert ann == []
+
+
+def test_rejects_a_doc_type_that_skipped_normalization(db):
+    with pytest.raises(psycopg.errors.CheckViolation):
+        db.execute(
+            "INSERT INTO documents (name, company, doc_type, fiscal_year, page_count)"
+            " VALUES ('3M_2018_10K', '3M', '10k', 2018, 160)"  # FinanceBench's raw form
+        )
