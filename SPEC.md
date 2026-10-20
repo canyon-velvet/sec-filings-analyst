@@ -25,7 +25,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - [x] Postgres + pgvector via Docker; schema
 - [x] Download FinanceBench + PDFs; dev/test split
 - [x] Ingest: parse per page → page-bounded chunks (512/64 tok) → embed → store
-- [ ] Retrieval metrics (TDD) + dense-only baseline on dev
+- [x] Retrieval metrics (TDD) + dense-only baseline on dev: **Hit@5 = 0.40** (`eval/RESULTS.md`)
 ### Week 2: hybrid (RRF) · reranker · metadata filters · contextual headers · cited answers + answer evals
 ### Week 3: agent tools (search, calculate) + loop · follow-ups · /chat SSE · chat UI (citations, agent-steps panel) · agent evals
 ### Week 4: EDGAR on-demand ingestion (ticker + form + year) · HTML parsing · section-based citations · fetch-filing agent tool
@@ -53,6 +53,8 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-19 · `make ingest` shows tokens + estimated cost and asks before any embedding request · money is never spent by accident
 - 2026-10-19 · Ingest skips Documents already stored (by name), one transaction each · a rerun resumes without paying twice; after a chunking change, `make db-reset` first
 - 2026-10-19 · `CHECK` on `documents.doc_type` (10-K, 10-Q, 8-K, Earnings) · a value that skipped normalization fails loudly
+- 2026-10-19 · Eval fetches 50 Chunks per Question · several Chunks share a Page, and @10 metrics need 10 unique Pages
+- 2026-10-19 · One results file per experiment name, never overwritten; `eval/RESULTS.md` regenerated from all of them · reported numbers can't silently change
 - 2026-10-15 · Any company via EDGAR on demand (built week 4, deployed week 5); FinanceBench stays the eval set · goal is answering questions on any filing; the benchmark proves the pipeline
 
 ## Open questions
@@ -73,6 +75,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-19 · Evidence pages aligned to 1-based Pages; local check on 20 sampled Questions vs FinanceBench's full-page text (#10)
 - 2026-10-19 · `OpenAIEmbedder` (text-embedding-3-small, batches of 256, injected client; fake client for tests) (#11, part 1)
 - 2026-10-19 · `make ingest`: cost prompt before any API call, resumable; 84 Documents, 25,854 Chunks, 10.5M tokens (≈ $0.21) stored; Doc type CHECK (#11)
+- 2026-10-19 · `make eval`: dense-only baseline on dev, Hit@5 0.40 · MRR@10 0.24; 27 of 30 misses retrieve the right Document but the wrong Page (#12)
 
 ## How to resume
 1. Read this file, `git log --oneline -20` and the open `ready-for-agent` issues. 2. Take the first unchecked task.
