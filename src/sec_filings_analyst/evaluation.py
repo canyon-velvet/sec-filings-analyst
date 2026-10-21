@@ -62,8 +62,9 @@ def run_eval(
 
 def _write(path: Path, text: str, replace: bool) -> None:
     """Writes text as UTF-8 to a temporary file beside path, then puts it in place in one step,
-    so an interrupted write never leaves half a file. Unless replace, an existing path raises
-    FileExistsError: os.link never overwrites."""
+    so a crashed or killed run never leaves half a file (there's no fsync, so a power loss
+    still could). Unless replace, an existing path raises FileExistsError: os.link never
+    overwrites."""
     tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
     try:
         with tmp.open("x", encoding="utf-8") as file:  # created with the umask's mode, like path
@@ -138,10 +139,9 @@ if __name__ == "__main__":
     def git(*args: str) -> str:
         return subprocess.run(["git", *args], check=True, capture_output=True, text=True).stdout
 
-    # -dirty: the code that ran isn't exactly that commit
-    commit = git("rev-parse", "HEAD").strip() + (
-        "-dirty" if git("status", "--porcelain", "src") else ""
-    )
+    # -dirty: uncommitted changes (code, pins, Split), apart from the eval outputs runs write
+    changes = git("status", "--porcelain", "--", ".", ":!eval/runs", ":!eval/RESULTS.md")
+    commit = git("rev-parse", "HEAD").strip() + ("-dirty" if changes else "")
     with psycopg.connect(os.environ["DATABASE_URL"], autocommit=True) as conn:
         experiment = build_experiment(name, conn, OpenAIEmbedder(openai.OpenAI()))
         # How the Chunks were made comes from code constants until the database records it
