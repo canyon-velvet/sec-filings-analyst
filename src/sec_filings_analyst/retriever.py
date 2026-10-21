@@ -51,8 +51,9 @@ class KeywordSearcher:
         rows = self._conn.execute(
             f"SELECT {_COLUMNS}, ts_rank_cd(c.tsv, q) AS score"
             " FROM chunks c JOIN documents d ON d.id = c.document_id,"
-            # plainto_tsquery joins the lexemes with &; | makes any one of them enough
-            " (SELECT replace(plainto_tsquery('english', %(query)s)::text, '&', '|')::tsquery"
+            # plainto_tsquery joins the lexemes with " & "; " | " makes any one of them enough.
+            # Lexemes have no spaces, so an & inside one (e.g. a URL's) is left alone.
+            " (SELECT replace(plainto_tsquery('english', %(query)s)::text, ' & ', ' | ')::tsquery"
             " AS q) t"
             " WHERE c.tsv @@ q ORDER BY score DESC, c.id LIMIT %(k)s",
             {"query": query, "k": k},

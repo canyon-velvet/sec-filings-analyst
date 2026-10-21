@@ -44,7 +44,7 @@ def ingest(
         stored = {name for (name,) in conn.execute("SELECT name FROM documents")}
         conn.execute("SELECT FROM corpus_settings")  # a schema from before corpus settings
     except psycopg.errors.UndefinedTable:
-        raise RuntimeError("no documents table: run `make db-reset` to create the schema") from None
+        raise RuntimeError("schema missing or out of date: run `make db-reset`") from None
     tokenizer = Cl100kTokenizer()
     pending: dict[Document, tuple[int, list[Chunk]]] = {}  # Document → (page count, Chunks)
     for document, pdf in pdfs.items():

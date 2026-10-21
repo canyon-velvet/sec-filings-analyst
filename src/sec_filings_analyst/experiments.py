@@ -25,7 +25,10 @@ class Experiment:
 EXPERIMENTS: dict[str, tuple[dict, Callable[[psycopg.Connection, Embedder], Searcher]]] = {
     "dense-baseline": ({"retriever": "dense, exact cosine"}, Retriever),
     "keyword-only": (
-        {"retriever": "keyword, Postgres full-text ('english'), terms OR-ed, ts_rank_cd"},
+        {
+            "retriever": "keyword, Postgres full-text ('english'), OR-ed terms,"
+            " ts_rank_cd without length normalization"
+        },
         lambda conn, embedder: KeywordSearcher(conn),
     ),
 }
