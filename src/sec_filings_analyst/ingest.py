@@ -67,14 +67,10 @@ def ingest(
     )
     if not confirm(summary):
         return
-    conn.execute(
-        "INSERT INTO corpus_settings (embedding_model, chunk_tokens, overlap_tokens)"
-        " VALUES (%s, %s, %s) ON CONFLICT DO NOTHING",  # a rerun keeps the first ingest's row
-        [embedder.model, CHUNK_TOKENS, OVERLAP_TOKENS],
-    )
     for document, (page_count, chunks) in pending.items():
         print(f"Embedding {document.name} ({len(chunks)} Chunks)")
-        _store(document, page_count, chunks, embedder.embed([c.text for c in chunks]), conn)
+        embeddings = embedder.embed([c.text for c in chunks])
+        _store(document, page_count, chunks, embeddings, embedder.model, conn)
 
 
 def describe_corpus(conn: psycopg.Connection) -> dict:
@@ -105,9 +101,16 @@ def _store(
     page_count: int,
     chunks: list[Chunk],
     embeddings: list[list[float]],
+    embedding_model: str,
     conn: psycopg.Connection,
 ) -> None:
     with conn.transaction():
+        # With the first Document, so corpus settings never exist without stored Chunks
+        conn.execute(
+            "INSERT INTO corpus_settings (embedding_model, chunk_tokens, overlap_tokens)"
+            " VALUES (%s, %s, %s) ON CONFLICT DO NOTHING",  # later Documents keep the first row
+            [embedding_model, CHUNK_TOKENS, OVERLAP_TOKENS],
+        )
         (document_id,) = conn.execute(
             "INSERT INTO documents (name, company, doc_type, fiscal_year, page_count)"
             " VALUES (%s, %s, %s, %s, %s) RETURNING id",
