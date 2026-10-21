@@ -61,9 +61,9 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-19 · `CHECK` on `documents.doc_type` (10-K, 10-Q, 8-K, Earnings) · a value that skipped normalization fails loudly
 - 2026-10-19 · Eval fetches 50 Chunks per Question · several Chunks share a Page, and @10 metrics need 10 unique Pages
 - 2026-10-19 · One results file per (Split, experiment), never overwritten; `eval/RESULTS.md` regenerated from all of them · reported numbers can't silently change
+- 2026-10-15 · Any company via EDGAR on demand (built week 4, deployed week 5); FinanceBench stays the eval set · goal is answering questions on any filing; the benchmark proves the pipeline
 - 2026-10-21 · Experiments are named in code (name → Searcher stack + settings); unknown names refused · a run's settings can't drift from what it searched
 - 2026-10-21 · Run files written to a temp file, then hard-linked into place · an interrupted write leaves no half file, and a run still can't be overwritten
-- 2026-10-15 · Any company via EDGAR on demand (built week 4, deployed week 5); FinanceBench stays the eval set · goal is answering questions on any filing; the benchmark proves the pipeline
 
 ## Open questions
 - None

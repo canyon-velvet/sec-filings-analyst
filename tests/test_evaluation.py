@@ -4,7 +4,8 @@ from pathlib import Path
 import pytest
 from fakes.retriever import FakeRetriever
 
-from sec_filings_analyst.evaluation import Experiment, run_eval
+from sec_filings_analyst.evaluation import run_eval
+from sec_filings_analyst.experiments import Experiment
 from sec_filings_analyst.financebench import load_questions
 
 # 00001 3M Evidence pages {60, 61} · 00002 3M {1} · 00003 AMCOR {3} (1-based, see #10)

@@ -1,31 +1,17 @@
 """Eval runner: every Question in a Split through an Experiment's Searcher and scoring, saved
 as a run."""
 
-import contextlib
 import json
 import os
-import tempfile
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from pathlib import Path
-from typing import Protocol
 
+from sec_filings_analyst.experiments import Experiment
 from sec_filings_analyst.financebench import Question
-from sec_filings_analyst.retriever import SearchResult
 from sec_filings_analyst.scoring import Metrics, Page, Retrieval, score
 
 FETCH_K = 50  # Chunks per Question: several can share a Page, and scoring needs 10 unique Pages
 TOP_PAGES = 5  # retrieved Pages kept per Question, for failure analysis
-
-
-class Searcher(Protocol):
-    def search(self, query: str, k: int) -> list[SearchResult]: ...
-
-
-@dataclass(frozen=True)
-class Experiment:
-    name: str
-    settings: dict  # how its Searcher is built; recorded in each run
-    searcher: Searcher
 
 
 def run_eval(
@@ -78,17 +64,16 @@ def _write(path: Path, text: str, replace: bool) -> None:
     """Writes text as UTF-8 to a temporary file beside path, then puts it in place in one step,
     so an interrupted write never leaves half a file. Unless replace, an existing path raises
     FileExistsError: os.link never overwrites."""
-    fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
     try:
-        with os.fdopen(fd, "w", encoding="utf-8") as file:
+        with tmp.open("x", encoding="utf-8") as file:  # created with the umask's mode, like path
             file.write(text)
         if replace:
-            os.replace(tmp, path)
+            tmp.replace(path)
         else:
             os.link(tmp, path)
     finally:
-        with contextlib.suppress(FileNotFoundError):  # already gone after os.replace
-            os.unlink(tmp)
+        tmp.unlink(missing_ok=True)  # already gone after replace
 
 
 def _pair(page: Page) -> list:
@@ -149,9 +134,14 @@ if __name__ == "__main__":
     ids = set(json.loads(split_file.read_text())[split_name])
     all_questions = load_questions(Path("data/financebench/financebench_merged.jsonl"))
     questions = [q for q in all_questions if q.id in ids]
-    commit = subprocess.run(
-        ["git", "rev-parse", "HEAD"], check=True, capture_output=True, text=True
-    ).stdout.strip()
+
+    def git(*args: str) -> str:
+        return subprocess.run(["git", *args], check=True, capture_output=True, text=True).stdout
+
+    # -dirty: the code that ran isn't exactly that commit
+    commit = git("rev-parse", "HEAD").strip() + (
+        "-dirty" if git("status", "--porcelain", "src") else ""
+    )
     with psycopg.connect(os.environ["DATABASE_URL"], autocommit=True) as conn:
         experiment = build_experiment(name, conn, OpenAIEmbedder(openai.OpenAI()))
         # How the Chunks were made comes from code constants until the database records it

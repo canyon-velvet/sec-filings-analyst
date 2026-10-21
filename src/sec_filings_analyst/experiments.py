@@ -1,12 +1,25 @@
 """Named Experiments: each name builds one Searcher stack, and its settings say how."""
 
 from collections.abc import Callable
+from dataclasses import dataclass
+from typing import Protocol
 
 import psycopg
 
 from sec_filings_analyst.embedder import Embedder
-from sec_filings_analyst.evaluation import Experiment, Searcher
-from sec_filings_analyst.retriever import Retriever
+from sec_filings_analyst.retriever import Retriever, SearchResult
+
+
+class Searcher(Protocol):
+    def search(self, query: str, k: int) -> list[SearchResult]: ...
+
+
+@dataclass(frozen=True)
+class Experiment:
+    name: str
+    settings: dict  # how its Searcher is built; recorded in each run
+    searcher: Searcher
+
 
 # name → (settings recorded in each run, builder of the Searcher)
 EXPERIMENTS: dict[str, tuple[dict, Callable[[psycopg.Connection, Embedder], Searcher]]] = {
