@@ -35,16 +35,26 @@ def ingest(
     an interrupted one.
 
     Needs an autocommit connection: otherwise an open transaction would turn this into an
-    uncommitted savepoint. Raises RuntimeError if the schema is missing (it never creates
-    it: db/schema.sql drops every table first), and ValueError for a PDF without
-    text (e.g. a scan), so a missing Document can't silently lower retrieval scores."""
+    uncommitted savepoint. Raises RuntimeError, before parsing anything, if the schema is
+    missing (it never creates it: db/schema.sql drops every table first) or the stored Chunks
+    were made with other settings (embedding model, chunk tokens, overlap), so one corpus never
+    mixes two kinds of Chunks. Raises ValueError for a PDF without text (e.g. a scan), so a
+    missing Document can't silently lower retrieval scores."""
     if not conn.autocommit:
         raise ValueError("ingest needs an autocommit connection, or nothing may be committed")
     try:
         stored = {name for (name,) in conn.execute("SELECT name FROM documents")}
-        conn.execute("SELECT FROM corpus_settings")  # a schema from before corpus settings
+        made_with = conn.execute(
+            "SELECT embedding_model, chunk_tokens, overlap_tokens FROM corpus_settings"
+        ).fetchone()  # None until the first Document is stored
     except psycopg.errors.UndefinedTable:
         raise RuntimeError("schema missing or out of date: run `make db-reset`") from None
+    settings = (embedder.model, CHUNK_TOKENS, OVERLAP_TOKENS)
+    if made_with is not None and made_with != settings:
+        raise RuntimeError(
+            f"stored Chunks were made with {made_with}, not {settings}:"
+            " run `make db-reset` to re-ingest everything"
+        )
     tokenizer = Cl100kTokenizer()
     pending: dict[Document, tuple[int, list[Chunk]]] = {}  # Document → (page count, Chunks)
     for document, pdf in pdfs.items():

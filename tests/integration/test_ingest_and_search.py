@@ -118,6 +118,19 @@ def test_confirming_stores_every_document_and_a_rerun_skips_stored_ones(db):
     ]
 
 
+def test_ingest_refuses_to_mix_chunks_made_with_other_settings(db):
+    beta = Document(name="BETA_2023_10K", company="Beta", doc_type="10-K", fiscal_year=2023)
+    ingest({ACME: FIXTURE}, WordHashEmbedder(), db, ScriptedConfirm(yes=True))
+    client, confirm = FakeOpenAIClient(), ScriptedConfirm(yes=True)
+
+    # Like resuming after switching the embedding model: Beta would be embedded differently
+    with pytest.raises(RuntimeError, match="word-hash.*text-embedding-3-small.*make db-reset"):
+        ingest({beta: FIXTURE}, OpenAIEmbedder(client), db, confirm)
+
+    assert confirm.summaries == [] and client.requests == []  # refused before any cost
+    assert describe_corpus(db)["documents"] == 1
+
+
 def test_a_missing_schema_points_to_make_db_reset(db):
     db.execute("DROP TABLE chunks, documents")
 
