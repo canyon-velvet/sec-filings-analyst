@@ -37,6 +37,15 @@ _Avoid_: query (the text sent to the Retriever), sample
 A Page that FinanceBench marks as containing the evidence for a Question's answer.
 _Avoid_: gold page, ground truth
 
+**Experiment**:
+A named retrieval setup: which Searcher stack is built and with which settings, e.g. `dense-baseline`.
+Tuned on dev, then reported on test under the same name.
+_Avoid_: config, variant
+
+**Run**:
+One Experiment scored on one Split, saved once and never overwritten, with the commit and corpus it ran against.
+_Avoid_: result, job
+
 **Split**:
 A committed, versioned partition of Questions into dev (tuning) and test (reporting).
 _Avoid_: fold

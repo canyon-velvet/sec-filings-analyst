@@ -65,6 +65,13 @@ def ingest(
         _store(document, page_count, chunks, embedder.embed([c.text for c in chunks]), conn)
 
 
+def describe_corpus(conn: psycopg.Connection) -> dict:
+    """What is stored, for a run to record: Document and Chunk counts."""
+    (documents,) = conn.execute("SELECT count(*) FROM documents").fetchone()
+    (chunks,) = conn.execute("SELECT count(*) FROM chunks").fetchone()
+    return {"documents": documents, "chunks": chunks}
+
+
 def _store(
     document: Document,
     page_count: int,

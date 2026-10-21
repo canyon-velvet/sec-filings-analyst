@@ -7,7 +7,7 @@ from fakes.openai_client import FakeOpenAIClient
 
 from sec_filings_analyst.documents import Document
 from sec_filings_analyst.embedder import OpenAIEmbedder
-from sec_filings_analyst.ingest import ingest
+from sec_filings_analyst.ingest import describe_corpus, ingest
 from sec_filings_analyst.retriever import Retriever
 
 pytestmark = pytest.mark.integration
@@ -36,6 +36,14 @@ def test_search_ranks_the_page_that_matches_the_query_first(db):
 
     assert [(r.chunk.document, r.chunk.page) for r in results] == [(ACME, 3), (ACME, 1)]
     assert results[0].chunk.text == "Long-term debt was reduced by 300 million dollars."
+
+
+def test_the_corpus_is_described_by_its_stored_counts(db):
+    assert describe_corpus(db) == {"documents": 0, "chunks": 0}
+
+    ingest({ACME: FIXTURE}, WordHashEmbedder(), db, ScriptedConfirm(yes=True))
+
+    assert describe_corpus(db) == {"documents": 1, "chunks": 2}  # Page 2 is empty
 
 
 def test_ingest_refuses_a_connection_that_might_not_commit(db):

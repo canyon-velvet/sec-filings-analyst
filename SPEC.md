@@ -26,7 +26,13 @@ Vite + React + TS · no LangChain/LlamaIndex
 - [x] Download FinanceBench + PDFs; dev/test split
 - [x] Ingest: parse per page → page-bounded chunks (512/64 tok) → embed → store
 - [x] Retrieval metrics (TDD) + dense-only baseline on dev: **Hit@5 = 0.40** (`eval/RESULTS.md`)
-### Week 2: hybrid (RRF) · reranker · metadata filters · contextual headers · cited answers + answer evals
+### Week 2: hybrid (RRF) · reranker · metadata filters · contextual headers · cited answers + answer evals (spec: #26)
+- [x] Named Experiments; runs record commit, corpus counts, Questions under 10 Pages (#27)
+- [ ] Keyword search + hybrid RRF (#28, #29)
+- [ ] Reranker (#30)
+- [ ] Metadata filters + contextual headers (#31, #32)
+- [ ] Cited Answers + answer evals (#33–#36)
+- [ ] Judge validation + test-Split report (#37, #38)
 ### Week 3: agent tools (search, calculate) + loop · follow-ups · /chat SSE · chat UI (citations, agent-steps panel) · agent evals
 ### Week 4: EDGAR on-demand ingestion (ticker + form + year) · HTML parsing · section-based citations · fetch-filing agent tool
 ### Week 5: CI eval smoke · cost/latency · deploy · README results + demo
@@ -56,6 +62,8 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-19 · Eval fetches 50 Chunks per Question · several Chunks share a Page, and @10 metrics need 10 unique Pages
 - 2026-10-19 · One results file per (Split, experiment), never overwritten; `eval/RESULTS.md` regenerated from all of them · reported numbers can't silently change
 - 2026-10-15 · Any company via EDGAR on demand (built week 4, deployed week 5); FinanceBench stays the eval set · goal is answering questions on any filing; the benchmark proves the pipeline
+- 2026-10-21 · Experiments are named in code (name → Searcher stack + settings); unknown names refused · one entry holds both the stack and the settings its runs record, not hand-built config in the entry point
+- 2026-10-21 · Run files written to a temp file, then hard-linked into place · a crashed or killed run leaves no half file (no fsync), and a run still can't be overwritten
 
 ## Open questions
 - None
@@ -76,6 +84,8 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-19 · `OpenAIEmbedder` (text-embedding-3-small, batches of 256, injected client; fake client for tests) (#11, part 1)
 - 2026-10-19 · `make ingest`: cost prompt before any API call, resumable; 84 Documents, 25,854 Chunks, 10.5M tokens (≈ $0.21) stored; Doc type CHECK (#11)
 - 2026-10-19 · `make eval`: dense-only baseline on dev, Hit@5 0.40 · MRR@10 0.24; 27 of 30 misses retrieve the right Document but the wrong Page (#12)
+- 2026-10-20 · Week-2 spec #26 and tickets #27–#38
+- 2026-10-21 · `make eval EXPERIMENT=` builds a named Experiment; runs record commit, Document/Chunk counts, Questions under 10 Pages; atomic UTF-8 writes (#27)
 
 ## How to resume
 1. Read this file, `git log --oneline -20` and the open `ready-for-agent` issues. 2. Take the first unchecked task.
