@@ -62,7 +62,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-19 · Eval fetches 50 Chunks per Question · several Chunks share a Page, and @10 metrics need 10 unique Pages
 - 2026-10-19 · One results file per (Split, experiment), never overwritten; `eval/RESULTS.md` regenerated from all of them · reported numbers can't silently change
 - 2026-10-15 · Any company via EDGAR on demand (built week 4, deployed week 5); FinanceBench stays the eval set · goal is answering questions on any filing; the benchmark proves the pipeline
-- 2026-10-21 · Experiments are named in code (name → Searcher stack + settings); unknown names refused · a run's settings can't drift from what it searched
+- 2026-10-21 · Experiments are named in code (name → Searcher stack + settings); unknown names refused · one entry holds both the stack and the settings its runs record, not hand-built config in the entry point
 - 2026-10-21 · Run files written to a temp file, then hard-linked into place · a crashed or killed run leaves no half file (no fsync), and a run still can't be overwritten
 
 ## Open questions

@@ -3,6 +3,7 @@ as a run."""
 
 import json
 import os
+import secrets
 from dataclasses import asdict
 from pathlib import Path
 
@@ -65,7 +66,7 @@ def _write(path: Path, text: str, replace: bool) -> None:
     so a crashed or killed run never leaves half a file (there's no fsync, so a power loss
     still could). Unless replace, an existing path raises FileExistsError: os.link never
     overwrites."""
-    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    tmp = path.with_name(f".{path.name}.{secrets.token_hex(8)}.tmp")  # unique, unlike a PID
     try:
         with tmp.open("x", encoding="utf-8") as file:  # created with the umask's mode, like path
             file.write(text)
