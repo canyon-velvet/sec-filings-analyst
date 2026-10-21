@@ -1,7 +1,11 @@
-"""Eval runner: every Question in a Split through the Retriever and scoring, saved as a run."""
+"""Eval runner: every Question in a Split through an Experiment's Searcher and scoring, saved
+as a run."""
 
+import contextlib
 import json
-from dataclasses import asdict
+import os
+import tempfile
+from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Protocol
 
@@ -17,33 +21,41 @@ class Searcher(Protocol):
     def search(self, query: str, k: int) -> list[SearchResult]: ...
 
 
+@dataclass(frozen=True)
+class Experiment:
+    name: str
+    settings: dict  # how its Searcher is built; recorded in each run
+    searcher: Searcher
+
+
 def run_eval(
-    experiment: str,
-    split: str,
-    questions: list[Question],
-    retriever: Searcher,
-    config: dict,
-    eval_dir: Path,
+    experiment: Experiment, split: str, questions: list[Question], provenance: dict, eval_dir: Path
 ) -> None:
-    """Saves eval_dir/runs/<split>/<experiment>.json and regenerates eval_dir/RESULTS.md from
-    every saved run. Raises FileExistsError, before any search, if the experiment was already
-    run on this Split, and ValueError for an experiment name that isn't a plain file name."""
-    if Path(experiment).name != experiment:
-        raise ValueError(f"experiment {experiment!r} must be a plain name, without folders")
-    path = eval_dir / "runs" / split / f"{experiment}.json"
+    """Saves eval_dir/runs/<split>/<experiment name>.json, with provenance (commit, corpus)
+    recorded as given, and regenerates eval_dir/RESULTS.md from every saved run. Raises
+    FileExistsError, before any search, if the experiment was already run on this Split, and
+    ValueError for an experiment name that isn't a plain file name."""
+    name = experiment.name
+    if Path(name).name != name:
+        raise ValueError(f"experiment {name!r} must be a plain name, without folders")
+    path = eval_dir / "runs" / split / f"{name}.json"
     if path.exists():
         raise FileExistsError(f"{path} exists; name the new run differently")
     retrievals = {}
     for question in questions:
-        results = retriever.search(question.text, k=FETCH_K)
+        results = experiment.searcher.search(question.text, k=FETCH_K)
         ranked = [Page(r.chunk.document.name, r.chunk.page) for r in results]
         evidence = {Page(question.document.name, n) for n in question.evidence_pages}
         retrievals[question.id] = Retrieval(question.question_type, ranked, evidence)
     scores = score(retrievals)
     run = {
-        "experiment": experiment,
+        "experiment": name,
         "split": split,
-        "config": config | {"fetch_k": FETCH_K},
+        "config": experiment.settings | {"fetch_k": FETCH_K},
+        "commit": provenance["commit"],
+        "corpus": provenance["corpus"],
+        # Such Questions are scored @10 on fewer than 10 Pages, which can lower the @10 metrics
+        "fewer_than_10_pages": sum(len(set(r.ranked)) < 10 for r in retrievals.values()),
         "overall": asdict(scores.overall),
         "by_type": {t: asdict(m) for t, m in scores.by_type.items()},
         "questions": {
@@ -57,11 +69,26 @@ def run_eval(
         },
     }
     path.parent.mkdir(parents=True, exist_ok=True)
-    text = json.dumps(run, indent=2) + "\n"  # first, so an unserializable value creates no file
-    with path.open("x") as file:
-        file.write(text)
+    _write(path, json.dumps(run, indent=2) + "\n", replace=False)
     run_files = sorted((eval_dir / "runs").rglob("*.json"))
-    (eval_dir / "RESULTS.md").write_text(_results_table(run_files))
+    _write(eval_dir / "RESULTS.md", _results_table(run_files), replace=True)
+
+
+def _write(path: Path, text: str, replace: bool) -> None:
+    """Writes text as UTF-8 to a temporary file beside path, then puts it in place in one step,
+    so an interrupted write never leaves half a file. Unless replace, an existing path raises
+    FileExistsError: os.link never overwrites."""
+    fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as file:
+            file.write(text)
+        if replace:
+            os.replace(tmp, path)
+        else:
+            os.link(tmp, path)
+    finally:
+        with contextlib.suppress(FileNotFoundError):  # already gone after os.replace
+            os.unlink(tmp)
 
 
 def _pair(page: Page) -> list:
@@ -69,7 +96,7 @@ def _pair(page: Page) -> list:
 
 
 def _results_table(run_files: list[Path]) -> str:
-    runs = [json.loads(f.read_text()) for f in run_files]
+    runs = [json.loads(f.read_text(encoding="utf-8")) for f in run_files]
     types = sorted({t for run in runs for t in run["by_type"]})
     lines = [
         "# Retrieval results",
@@ -105,7 +132,7 @@ def _fmt(value: float) -> str:
 
 
 if __name__ == "__main__":
-    import os
+    import subprocess
     import sys
 
     import openai
@@ -113,21 +140,26 @@ if __name__ == "__main__":
 
     from sec_filings_analyst.chunking import CHUNK_TOKENS, OVERLAP_TOKENS
     from sec_filings_analyst.embedder import EMBEDDING_MODEL, OpenAIEmbedder
+    from sec_filings_analyst.experiments import build_experiment
     from sec_filings_analyst.financebench import load_questions
-    from sec_filings_analyst.retriever import Retriever
+    from sec_filings_analyst.ingest import describe_corpus
 
-    split_name, experiment = sys.argv[1:]  # e.g. dev dense-baseline
+    split_name, name = sys.argv[1:]  # e.g. dev dense-baseline
     split_file = Path("eval/splits/financebench_v1.json")
     ids = set(json.loads(split_file.read_text())[split_name])
     all_questions = load_questions(Path("data/financebench/financebench_merged.jsonl"))
     questions = [q for q in all_questions if q.id in ids]
-    config = {
-        "retriever": "dense, exact cosine",
-        "embedding_model": EMBEDDING_MODEL,
-        "chunk_tokens": CHUNK_TOKENS,
-        "overlap_tokens": OVERLAP_TOKENS,
-    }
+    commit = subprocess.run(
+        ["git", "rev-parse", "HEAD"], check=True, capture_output=True, text=True
+    ).stdout.strip()
     with psycopg.connect(os.environ["DATABASE_URL"], autocommit=True) as conn:
-        retriever = Retriever(conn, OpenAIEmbedder(openai.OpenAI()))
+        experiment = build_experiment(name, conn, OpenAIEmbedder(openai.OpenAI()))
+        # How the Chunks were made comes from code constants until the database records it
+        made_with = {
+            "embedding_model": EMBEDDING_MODEL,
+            "chunk_tokens": CHUNK_TOKENS,
+            "overlap_tokens": OVERLAP_TOKENS,
+        }
+        provenance = {"commit": commit, "corpus": describe_corpus(conn) | made_with}
         split = f"{split_file.stem}/{split_name}"
-        run_eval(experiment, split, questions, retriever, config, Path("eval"))
+        run_eval(experiment, split, questions, provenance, Path("eval"))
