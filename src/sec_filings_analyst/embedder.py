@@ -12,6 +12,8 @@ BATCH_SIZE = 256
 
 
 class Embedder(Protocol):
+    model: str  # recorded with the corpus
+
     def embed(self, texts: list[str]) -> list[list[float]]:
         """One vector per text, in order; 1536 dimensions to match the `chunks` table."""
         ...
@@ -24,6 +26,8 @@ def to_pgvector(vector: list[float]) -> str:
 
 class OpenAIEmbedder:
     """Embeds with OpenAI, BATCH_SIZE texts per request; no request for no texts."""
+
+    model = EMBEDDING_MODEL
 
     def __init__(self, client: "openai.OpenAI"):
         self._client = client

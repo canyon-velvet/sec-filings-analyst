@@ -7,7 +7,7 @@ from typing import Protocol
 import psycopg
 
 from sec_filings_analyst.embedder import Embedder
-from sec_filings_analyst.retriever import Retriever, SearchResult
+from sec_filings_analyst.retriever import KeywordSearcher, Retriever, SearchResult
 
 
 class Searcher(Protocol):
@@ -24,6 +24,10 @@ class Experiment:
 # name → (settings recorded in each run, builder of the Searcher)
 EXPERIMENTS: dict[str, tuple[dict, Callable[[psycopg.Connection, Embedder], Searcher]]] = {
     "dense-baseline": ({"retriever": "dense, exact cosine"}, Retriever),
+    "keyword-only": (
+        {"retriever": "keyword, Postgres full-text ('english'), terms OR-ed, ts_rank_cd"},
+        lambda conn, embedder: KeywordSearcher(conn),
+    ),
 }
 
 

@@ -6,7 +6,13 @@ from pathlib import Path
 
 import psycopg
 
-from sec_filings_analyst.chunking import Cl100kTokenizer, chunk_pages, parse_pages
+from sec_filings_analyst.chunking import (
+    CHUNK_TOKENS,
+    OVERLAP_TOKENS,
+    Cl100kTokenizer,
+    chunk_pages,
+    parse_pages,
+)
 from sec_filings_analyst.documents import Chunk, Document
 from sec_filings_analyst.embedder import (
     PRICE_PER_MILLION_TOKENS,
@@ -36,6 +42,7 @@ def ingest(
         raise ValueError("ingest needs an autocommit connection, or nothing may be committed")
     try:
         stored = {name for (name,) in conn.execute("SELECT name FROM documents")}
+        conn.execute("SELECT FROM corpus_settings")  # a schema from before corpus settings
     except psycopg.errors.UndefinedTable:
         raise RuntimeError("no documents table: run `make db-reset` to create the schema") from None
     tokenizer = Cl100kTokenizer()
@@ -60,16 +67,37 @@ def ingest(
     )
     if not confirm(summary):
         return
+    conn.execute(
+        "INSERT INTO corpus_settings (embedding_model, chunk_tokens, overlap_tokens)"
+        " VALUES (%s, %s, %s) ON CONFLICT DO NOTHING",  # a rerun keeps the first ingest's row
+        [embedder.model, CHUNK_TOKENS, OVERLAP_TOKENS],
+    )
     for document, (page_count, chunks) in pending.items():
         print(f"Embedding {document.name} ({len(chunks)} Chunks)")
         _store(document, page_count, chunks, embedder.embed([c.text for c in chunks]), conn)
 
 
 def describe_corpus(conn: psycopg.Connection) -> dict:
-    """What is stored, for a run to record: Document and Chunk counts."""
+    """What is stored, for a run to record: Document and Chunk counts, and how the Chunks were
+    made. Raises RuntimeError if no ingest recorded that (nothing ingested yet, or a schema
+    from before corpus settings)."""
+    query = "SELECT embedding_model, chunk_tokens, overlap_tokens FROM corpus_settings"
+    try:
+        settings = conn.execute(query).fetchone()
+    except psycopg.errors.UndefinedTable:
+        settings = None
+    if settings is None:
+        raise RuntimeError("no corpus settings: run `make db-reset`, then `make ingest`")
+    embedding_model, chunk_tokens, overlap_tokens = settings
     (documents,) = conn.execute("SELECT count(*) FROM documents").fetchone()
     (chunks,) = conn.execute("SELECT count(*) FROM chunks").fetchone()
-    return {"documents": documents, "chunks": chunks}
+    return {
+        "documents": documents,
+        "chunks": chunks,
+        "embedding_model": embedding_model,
+        "chunk_tokens": chunk_tokens,
+        "overlap_tokens": overlap_tokens,
+    }
 
 
 def _store(
