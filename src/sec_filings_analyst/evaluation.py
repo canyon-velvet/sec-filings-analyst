@@ -125,8 +125,7 @@ if __name__ == "__main__":
     import openai
     import psycopg
 
-    from sec_filings_analyst.chunking import CHUNK_TOKENS, OVERLAP_TOKENS
-    from sec_filings_analyst.embedder import EMBEDDING_MODEL, OpenAIEmbedder
+    from sec_filings_analyst.embedder import OpenAIEmbedder
     from sec_filings_analyst.experiments import build_experiment
     from sec_filings_analyst.financebench import load_questions
     from sec_filings_analyst.ingest import describe_corpus
@@ -145,12 +144,6 @@ if __name__ == "__main__":
     commit = git("rev-parse", "HEAD").strip() + ("-dirty" if changes else "")
     with psycopg.connect(os.environ["DATABASE_URL"], autocommit=True) as conn:
         experiment = build_experiment(name, conn, OpenAIEmbedder(openai.OpenAI()))
-        # How the Chunks were made comes from code constants until the database records it
-        made_with = {
-            "embedding_model": EMBEDDING_MODEL,
-            "chunk_tokens": CHUNK_TOKENS,
-            "overlap_tokens": OVERLAP_TOKENS,
-        }
-        provenance = {"commit": commit, "corpus": describe_corpus(conn) | made_with}
+        provenance = {"commit": commit, "corpus": describe_corpus(conn)}
         split = f"{split_file.stem}/{split_name}"
         run_eval(experiment, split, questions, provenance, Path("eval"))

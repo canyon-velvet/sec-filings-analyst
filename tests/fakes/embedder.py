@@ -8,6 +8,8 @@ class WordHashEmbedder:
     """Deterministic, offline Embedder: each word adds 1 to the dimension its hash picks,
     so texts that share words are similar."""
 
+    model = "word-hash"
+
     def embed(self, texts: list[str]) -> list[list[float]]:
         return [self._embed_one(text) for text in texts]
 

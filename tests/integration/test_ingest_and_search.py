@@ -38,12 +38,25 @@ def test_search_ranks_the_page_that_matches_the_query_first(db):
     assert results[0].chunk.text == "Long-term debt was reduced by 300 million dollars."
 
 
-def test_the_corpus_is_described_by_its_stored_counts(db):
-    assert describe_corpus(db) == {"documents": 0, "chunks": 0}
-
+def test_the_corpus_is_described_by_its_counts_and_how_its_chunks_were_made(db):
     ingest({ACME: FIXTURE}, WordHashEmbedder(), db, ScriptedConfirm(yes=True))
 
-    assert describe_corpus(db) == {"documents": 1, "chunks": 2}  # Page 2 is empty
+    assert describe_corpus(db) == {
+        "documents": 1,
+        "chunks": 2,  # Page 2 is empty
+        "embedding_model": "word-hash",  # the fake's: read back from the database
+        "chunk_tokens": 512,
+        "overlap_tokens": 64,
+    }
+
+
+def test_a_corpus_without_settings_points_to_db_reset_and_ingest(db):
+    with pytest.raises(RuntimeError, match="make db-reset.*make ingest"):
+        describe_corpus(db)  # nothing ingested yet
+
+    db.execute("DROP TABLE corpus_settings")  # a schema from before corpus settings
+    with pytest.raises(RuntimeError, match="make db-reset.*make ingest"):
+        describe_corpus(db)
 
 
 def test_ingest_refuses_a_connection_that_might_not_commit(db):
@@ -93,6 +106,19 @@ def test_confirming_stores_every_document_and_a_rerun_skips_stored_ones(db):
         ("BETA_2023_10K", 1),
         ("BETA_2023_10K", 3),
     ]
+
+
+def test_ingest_refuses_to_mix_chunks_made_with_other_settings(db):
+    beta = Document(name="BETA_2023_10K", company="Beta", doc_type="10-K", fiscal_year=2023)
+    ingest({ACME: FIXTURE}, WordHashEmbedder(), db, ScriptedConfirm(yes=True))
+    client, confirm = FakeOpenAIClient(), ScriptedConfirm(yes=True)
+
+    # Like resuming after switching the embedding model: Beta would be embedded differently
+    with pytest.raises(RuntimeError, match="word-hash.*text-embedding-3-small.*make db-reset"):
+        ingest({beta: FIXTURE}, OpenAIEmbedder(client), db, confirm)
+
+    assert confirm.summaries == [] and client.requests == []  # refused before any cost
+    assert describe_corpus(db)["documents"] == 1
 
 
 def test_a_missing_schema_points_to_make_db_reset(db):

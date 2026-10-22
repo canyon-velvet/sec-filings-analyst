@@ -6,7 +6,13 @@ from pathlib import Path
 
 import psycopg
 
-from sec_filings_analyst.chunking import Cl100kTokenizer, chunk_pages, parse_pages
+from sec_filings_analyst.chunking import (
+    CHUNK_TOKENS,
+    OVERLAP_TOKENS,
+    Cl100kTokenizer,
+    chunk_pages,
+    parse_pages,
+)
 from sec_filings_analyst.documents import Chunk, Document
 from sec_filings_analyst.embedder import (
     PRICE_PER_MILLION_TOKENS,
@@ -29,15 +35,26 @@ def ingest(
     an interrupted one.
 
     Needs an autocommit connection: otherwise an open transaction would turn this into an
-    uncommitted savepoint. Raises RuntimeError if the schema is missing (it never creates
-    it: db/schema.sql drops every table first), and ValueError for a PDF without
-    text (e.g. a scan), so a missing Document can't silently lower retrieval scores."""
+    uncommitted savepoint. Raises RuntimeError, before parsing anything, if the schema is
+    missing (it never creates it: db/schema.sql drops every table first) or the stored Chunks
+    were made with other settings (embedding model, chunk tokens, overlap), so one corpus never
+    mixes two kinds of Chunks. Raises ValueError for a PDF without text (e.g. a scan), so a
+    missing Document can't silently lower retrieval scores."""
     if not conn.autocommit:
         raise ValueError("ingest needs an autocommit connection, or nothing may be committed")
     try:
         stored = {name for (name,) in conn.execute("SELECT name FROM documents")}
+        made_with = conn.execute(
+            "SELECT embedding_model, chunk_tokens, overlap_tokens FROM corpus_settings"
+        ).fetchone()  # None until the first Document is stored
     except psycopg.errors.UndefinedTable:
-        raise RuntimeError("no documents table: run `make db-reset` to create the schema") from None
+        raise RuntimeError("schema missing or out of date: run `make db-reset`") from None
+    settings = (embedder.model, CHUNK_TOKENS, OVERLAP_TOKENS)
+    if made_with is not None and made_with != settings:
+        raise RuntimeError(
+            f"stored Chunks were made with {made_with}, not {settings}:"
+            " run `make db-reset` to re-ingest everything"
+        )
     tokenizer = Cl100kTokenizer()
     pending: dict[Document, tuple[int, list[Chunk]]] = {}  # Document → (page count, Chunks)
     for document, pdf in pdfs.items():
@@ -62,14 +79,31 @@ def ingest(
         return
     for document, (page_count, chunks) in pending.items():
         print(f"Embedding {document.name} ({len(chunks)} Chunks)")
-        _store(document, page_count, chunks, embedder.embed([c.text for c in chunks]), conn)
+        embeddings = embedder.embed([c.text for c in chunks])
+        _store(document, page_count, chunks, embeddings, embedder.model, conn)
 
 
 def describe_corpus(conn: psycopg.Connection) -> dict:
-    """What is stored, for a run to record: Document and Chunk counts."""
+    """What is stored, for a run to record: Document and Chunk counts, and how the Chunks were
+    made. Raises RuntimeError if no ingest recorded that (nothing ingested yet, or a schema
+    from before corpus settings)."""
+    query = "SELECT embedding_model, chunk_tokens, overlap_tokens FROM corpus_settings"
+    try:
+        settings = conn.execute(query).fetchone()
+    except psycopg.errors.UndefinedTable:
+        settings = None
+    if settings is None:
+        raise RuntimeError("no corpus settings: run `make db-reset`, then `make ingest`")
+    embedding_model, chunk_tokens, overlap_tokens = settings
     (documents,) = conn.execute("SELECT count(*) FROM documents").fetchone()
     (chunks,) = conn.execute("SELECT count(*) FROM chunks").fetchone()
-    return {"documents": documents, "chunks": chunks}
+    return {
+        "documents": documents,
+        "chunks": chunks,
+        "embedding_model": embedding_model,
+        "chunk_tokens": chunk_tokens,
+        "overlap_tokens": overlap_tokens,
+    }
 
 
 def _store(
@@ -77,9 +111,16 @@ def _store(
     page_count: int,
     chunks: list[Chunk],
     embeddings: list[list[float]],
+    embedding_model: str,
     conn: psycopg.Connection,
 ) -> None:
     with conn.transaction():
+        # With the first Document, so corpus settings never exist without stored Chunks
+        conn.execute(
+            "INSERT INTO corpus_settings (embedding_model, chunk_tokens, overlap_tokens)"
+            " VALUES (%s, %s, %s) ON CONFLICT DO NOTHING",  # later Documents keep the first row
+            [embedding_model, CHUNK_TOKENS, OVERLAP_TOKENS],
+        )
         (document_id,) = conn.execute(
             "INSERT INTO documents (name, company, doc_type, fiscal_year, page_count)"
             " VALUES (%s, %s, %s, %s, %s) RETURNING id",

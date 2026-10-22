@@ -1,8 +1,18 @@
 -- Drops and recreates everything: all data can be rebuilt from the Documents.
 CREATE EXTENSION IF NOT EXISTS vector;
 
+DROP TABLE IF EXISTS corpus_settings;
 DROP TABLE IF EXISTS chunks;
 DROP TABLE IF EXISTS documents;
+
+-- How the stored Chunks were made, so runs record that rather than today's code: one row,
+-- written with the first stored Document; ingest refuses to add Chunks made differently.
+CREATE TABLE corpus_settings (
+    one_row boolean PRIMARY KEY DEFAULT true CHECK (one_row),
+    embedding_model text NOT NULL,
+    chunk_tokens int NOT NULL,
+    overlap_tokens int NOT NULL
+);
 
 CREATE TABLE documents (
     id serial PRIMARY KEY,
