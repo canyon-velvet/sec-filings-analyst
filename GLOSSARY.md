@@ -24,14 +24,22 @@ _Avoid_: page index (0-based)
 
 **Chunk**:
 A span of text from exactly one Page, at most 512 tokens, stored with its embedding.
-The Retriever returns Chunks ranked by similarity to the query, each with its score.
+A Searcher returns Chunks ranked by how well they match the query, each with its score.
 _Avoid_: passage, snippet, segment
+
+**Corpus settings**:
+How every stored Chunk was made: embedding model, chunk tokens, overlap. Stored once in the database; a corpus never mixes two.
+_Avoid_: config, ingest settings
+
+**Searcher**:
+Anything that returns the top-k Chunks for a query: dense (the Retriever, by embedding) or keyword (BM25 over the Chunk's terms).
+_Avoid_: retriever (that's the dense one), engine
 
 ### Evaluation
 
 **Question**:
 One FinanceBench question with its answer, question type and Evidence pages.
-_Avoid_: query (the text sent to the Retriever), sample
+_Avoid_: query (the text sent to a Searcher), sample
 
 **Evidence page**:
 A Page that FinanceBench marks as containing the evidence for a Question's answer.
@@ -43,7 +51,7 @@ Tuned on dev, then reported on test under the same name.
 _Avoid_: config, variant
 
 **Run**:
-One Experiment scored on one Split, saved once and never overwritten, with the commit and corpus it ran against.
+One Experiment scored on one Split, saved once and never overwritten, with the commit and the corpus (counts + Corpus settings) it ran against.
 _Avoid_: result, job
 
 **Split**:
