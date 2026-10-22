@@ -31,6 +31,8 @@ CREATE TABLE chunks (
     text text NOT NULL,
     token_count int NOT NULL,
     embedding vector(1536) NOT NULL,  -- text-embedding-3-small
+    -- Lexemes for keyword search (stemmed, without stopwords); queries use the same config
+    tsv tsvector GENERATED ALWAYS AS (to_tsvector('english', text)) STORED,
     UNIQUE (document_id, page, position)
 );
 
