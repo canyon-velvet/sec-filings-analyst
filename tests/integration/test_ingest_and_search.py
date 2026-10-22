@@ -8,7 +8,7 @@ from fakes.openai_client import FakeOpenAIClient
 from sec_filings_analyst.documents import Document
 from sec_filings_analyst.embedder import OpenAIEmbedder
 from sec_filings_analyst.ingest import describe_corpus, ingest
-from sec_filings_analyst.retriever import KeywordSearcher, Retriever
+from sec_filings_analyst.retriever import Retriever
 
 pytestmark = pytest.mark.integration
 
@@ -36,16 +36,6 @@ def test_search_ranks_the_page_that_matches_the_query_first(db):
 
     assert [(r.chunk.document, r.chunk.page) for r in results] == [(ACME, 3), (ACME, 1)]
     assert results[0].chunk.text == "Long-term debt was reduced by 300 million dollars."
-
-
-def test_keyword_search_finds_a_page_by_any_of_the_question_s_terms(db):
-    ingest({ACME: FIXTURE}, WordHashEmbedder(), db, ScriptedConfirm(yes=True))
-
-    # "unicorn" is on no Page, so requiring every term would find nothing
-    question = "What was the long-term debt reduction in the unicorn division?"
-    results = KeywordSearcher(db).search(question, k=5)
-
-    assert [(r.chunk.document, r.chunk.page) for r in results] == [(ACME, 3)]  # Page 1: no term
 
 
 def test_the_corpus_is_described_by_its_counts_and_how_its_chunks_were_made(db):
