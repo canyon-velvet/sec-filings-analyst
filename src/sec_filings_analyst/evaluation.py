@@ -143,7 +143,8 @@ if __name__ == "__main__":
     changes = git("status", "--porcelain", "--", ".", ":!eval/runs", ":!eval/RESULTS.md")
     commit = git("rev-parse", "HEAD").strip() + ("-dirty" if changes else "")
     with psycopg.connect(os.environ["DATABASE_URL"], autocommit=True) as conn:
-        experiment = build_experiment(name, conn, OpenAIEmbedder(openai.OpenAI()))
+        # First: it refuses a database without corpus settings, before a Searcher queries it
         provenance = {"commit": commit, "corpus": describe_corpus(conn)}
+        experiment = build_experiment(name, conn, OpenAIEmbedder(openai.OpenAI()))
         split = f"{split_file.stem}/{split_name}"
         run_eval(experiment, split, questions, provenance, Path("eval"))
