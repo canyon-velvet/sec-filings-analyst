@@ -25,7 +25,8 @@ class Experiment:
 
 DENSE = "dense, exact cosine"
 KEYWORD = f"keyword, BM25 (k1 {K1}, b {B}) over Postgres 'english' lexemes, any term"
-# Per Searcher (at least k); deeper than k, so a Chunk just past one list's cut can still count
+# Per Searcher, or k if larger: at the eval's k (50) each list reaches past k, so a Chunk just past
+# one list's cut can still count
 HYBRID_CANDIDATES = 100
 
 # name → (settings recorded in each run, builder of the Searcher)
