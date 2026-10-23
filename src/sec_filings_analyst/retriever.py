@@ -1,6 +1,7 @@
 """Searchers: the top-k Chunks for a query. Evaluation and the agent both search through them."""
 
 from dataclasses import dataclass
+from typing import Protocol
 
 import psycopg
 
@@ -12,7 +13,11 @@ from sec_filings_analyst.embedder import Embedder, to_pgvector
 @dataclass(frozen=True)
 class SearchResult:
     chunk: Chunk
-    score: float  # higher is closer; the scale depends on the Searcher (cosine, BM25)
+    score: float  # higher is closer; the scale depends on the Searcher (cosine, BM25, RRF)
+
+
+class Searcher(Protocol):
+    def search(self, query: str, k: int) -> list[SearchResult]: ...
 
 
 _COLUMNS = "d.name, d.company, d.doc_type, d.fiscal_year, c.page, c.position, c.text, c.token_count"
@@ -65,6 +70,29 @@ class KeywordSearcher:
         ).fetchall()
         columns = {row[0]: row[1:] for row in rows}
         return _results([(*columns[chunk], score) for chunk, score in top])
+
+
+RRF_K = 60  # the usual constant: the higher it is, the less a top rank outweighs a lower one
+
+
+class HybridSearcher:
+    """Fuses other Searchers' rankings with Reciprocal Rank Fusion: each is asked for
+    max(k, candidates) Chunks, and a Chunk scores the sum of 1/(RRF_K + rank) over the lists it
+    appears in. Ties keep the order Chunks were first seen in, earlier Searchers first."""
+
+    def __init__(self, searchers: list[Searcher], candidates: int):
+        self._searchers = searchers
+        self._candidates = candidates
+
+    def search(self, query: str, k: int) -> list[SearchResult]:
+        """The k Chunks with the highest fused score, highest first."""
+        depth = max(k, self._candidates)
+        scores: dict[Chunk, float] = {}
+        for searcher in self._searchers:
+            for rank, result in enumerate(searcher.search(query, depth), start=1):
+                scores[result.chunk] = scores.get(result.chunk, 0.0) + 1 / (RRF_K + rank)
+        top = sorted(scores.items(), key=lambda item: -item[1])[:k]
+        return [SearchResult(chunk, score) for chunk, score in top]
 
 
 def _results(rows: list[tuple]) -> list[SearchResult]:
