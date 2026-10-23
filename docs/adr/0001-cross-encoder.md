@@ -25,7 +25,8 @@ The development machine is an Intel Mac. PyTorch publishes no macOS x86_64 wheel
 - **Isolation:** these libraries are in the `rerank` dependency group, which CI doesn't install;
   the Scorer imports them only when built, and a unit test checks that loading the Experiments
   doesn't.
-- **Check:** the scorer reproduces the model card's example scores (8.607, −4.320).
+- **Check:** in a one-off manual check (not a test: tests never load the model), the scorer
+  reproduced the model card's example scores (8.607, −4.320).
 
 ## Alternatives
 
@@ -37,7 +38,9 @@ The development machine is an Intel Mac. PyTorch publishes no macOS x86_64 wheel
 
 ## Consequences
 
-- About 11 s of CPU per Question to rerank 100 full-length Chunks on this machine (12 cores);
-  the week-3 agent pays that per search unless it reranks fewer.
+- Cost on this machine (12 cores), wall time: a benchmark of 100 full-length pairs alone took
+  10.8 s; the dev runs took 524 s (50 candidates) and 772 s (100) for 50 Questions, about 10 and
+  15 s per Question including the dense search. The week-3 agent pays that per search unless it
+  reranks fewer.
 - MS MARCO is web search, not financial filings: tables and figures may score poorly.
 - Moving to an ARM machine or a newer onnxruntime means revisiting the pin, not the code.

@@ -640,6 +640,8 @@ dev = [
     { name = "ruff" },
 ]
 rerank = [
+    { name = "huggingface-hub" },
+    { name = "numpy" },
     { name = "onnxruntime" },
     { name = "tokenizers" },
 ]
@@ -658,6 +660,8 @@ dev = [
     { name = "ruff", specifier = ">=0.6" },
 ]
 rerank = [
+    { name = "huggingface-hub", specifier = ">=1.33,<2" },
+    { name = "numpy", specifier = ">=2.5" },
     { name = "onnxruntime", specifier = ">=1.23.2,<1.24" },
     { name = "tokenizers", specifier = ">=0.22" },
 ]
