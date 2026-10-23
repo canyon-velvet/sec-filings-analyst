@@ -2,17 +2,18 @@
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Protocol
 
 import psycopg
 
 from sec_filings_analyst.bm25 import K1, B
 from sec_filings_analyst.embedder import Embedder
-from sec_filings_analyst.retriever import KeywordSearcher, Retriever, SearchResult
-
-
-class Searcher(Protocol):
-    def search(self, query: str, k: int) -> list[SearchResult]: ...
+from sec_filings_analyst.retriever import (
+    RRF_K,
+    HybridSearcher,
+    KeywordSearcher,
+    Retriever,
+    Searcher,
+)
 
 
 @dataclass(frozen=True)
@@ -22,12 +23,23 @@ class Experiment:
     searcher: Searcher
 
 
+DENSE = "dense, exact cosine"
+KEYWORD = f"keyword, BM25 (k1 {K1}, b {B}) over Postgres 'english' lexemes, any term"
+# Per Searcher; more than the eval's 50 Chunks, so a Chunk just past one list's cut can still count
+HYBRID_CANDIDATES = 100
+
 # name → (settings recorded in each run, builder of the Searcher)
 EXPERIMENTS: dict[str, tuple[dict, Callable[[psycopg.Connection, Embedder], Searcher]]] = {
-    "dense-baseline": ({"retriever": "dense, exact cosine"}, Retriever),
-    "keyword-bm25": (
-        {"retriever": f"keyword, BM25 (k1 {K1}, b {B}) over Postgres 'english' lexemes, any term"},
-        lambda conn, embedder: KeywordSearcher(conn),
+    "dense-baseline": ({"retriever": DENSE}, Retriever),
+    "keyword-bm25": ({"retriever": KEYWORD}, lambda conn, embedder: KeywordSearcher(conn)),
+    "hybrid-rrf": (
+        {
+            "retriever": f"hybrid, RRF (k {RRF_K}) of [{DENSE}] + [{KEYWORD}]",
+            "candidates": HYBRID_CANDIDATES,
+        },
+        lambda conn, embedder: HybridSearcher(
+            [Retriever(conn, embedder), KeywordSearcher(conn)], HYBRID_CANDIDATES
+        ),
     ),
 }
 
