@@ -23,8 +23,8 @@ The development machine is an Intel Mac. PyTorch publishes no macOS x86_64 wheel
   Hugging Face cache on first use. `onnxruntime` is pinned to `>=1.23.2,<1.24`: the last series
   with macOS x86_64 wheels.
 - **Isolation:** these libraries are in the `rerank` dependency group, which CI doesn't install;
-  the Scorer imports them only when built, and a unit test checks that loading the Experiments
-  doesn't.
+  the Scorer imports them only when built or scoring (numpy), and a unit test checks that loading
+  the Experiments imports none of them.
 - **Check:** in a one-off manual check (not a test: tests never load the model), the scorer
   reproduced the model card's example scores (8.607, −4.320).
 

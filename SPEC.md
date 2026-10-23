@@ -67,7 +67,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-22 · Corpus settings (embedding model, chunk + overlap tokens) stored with the first Document; ingest refuses Chunks made differently; runs copy them · a run describes the corpus it searched, not today's code constants (header format joins in #32)
 - 2026-10-22 · Keyword search: BM25 (k1 1.2, b 0.75) in Python over Postgres 'english' lexemes, any shared term · Postgres `ts_rank_cd` has no IDF: dev Hit@5 0.02, subsidiary lists repeating "company" ranked first
 - 2026-10-23 · Hybrid = RRF (k 60) over max(k, 100) candidates per Searcher; ties keep the earlier (dense) list's order · on dev it loses to dense (Hit@5 0.26 vs 0.40): a Chunk both lists rank in their top ~60 beats a dense-only rank 1, so BM25's wrong Pages win; #30 reranks dense
-- 2026-10-23 · Reranker: local cross-encoder ms-marco-MiniLM-L6-v2 (Apache-2.0, pinned) on ONNX Runtime, CPU; libraries in a `rerank` group CI skips · torch has no Intel-Mac wheels; see docs/adr/0001. Neither rerank run beats dense on dev, so dense stays the first stage
+- 2026-10-23 · Reranker: local cross-encoder ms-marco-MiniLM-L6-v2 (Apache-2.0, pinned) on ONNX Runtime, CPU; libraries in a `rerank` group CI skips · torch has no Intel-Mac wheels; see docs/adr/0001. Both rerank runs lose to plain dense on dev, so `dense-baseline` stays the default Searcher
 
 ## Open questions
 - None
