@@ -28,7 +28,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - [x] Retrieval metrics (TDD) + dense-only baseline on dev: **Hit@5 = 0.40** (`eval/RESULTS.md`)
 ### Week 2: hybrid (RRF) · reranker · metadata filters · contextual headers · cited answers + answer evals (spec: #26)
 - [x] Named Experiments; runs record commit, corpus counts, Questions under 10 Pages (#27)
-- [ ] Keyword search + hybrid RRF (#28 done: BM25, dev Hit@5 0.10; #29)
+- [x] Keyword search + hybrid RRF: dev Hit@5 0.10 (BM25), 0.26 (hybrid) vs dense 0.40 (#28, #29)
 - [ ] Reranker (#30)
 - [ ] Metadata filters + contextual headers (#31, #32)
 - [ ] Cited Answers + answer evals (#33–#36)
@@ -66,6 +66,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-21 · Run files written to a temp file, then hard-linked into place · a crashed or killed run leaves no half file (no fsync), and a run still can't be overwritten
 - 2026-10-22 · Corpus settings (embedding model, chunk + overlap tokens) stored with the first Document; ingest refuses Chunks made differently; runs copy them · a run describes the corpus it searched, not today's code constants (header format joins in #32)
 - 2026-10-22 · Keyword search: BM25 (k1 1.2, b 0.75) in Python over Postgres 'english' lexemes, any shared term · Postgres `ts_rank_cd` has no IDF: dev Hit@5 0.02, subsidiary lists repeating "company" ranked first
+- 2026-10-23 · Hybrid = RRF (k 60) over 100 candidates per Searcher; ties keep the earlier (dense) list's order · on dev it loses to dense (Hit@5 0.26 vs 0.40): any Chunk both lists rank beats a dense-only rank 1, and BM25's wrong Pages win; #30 reranks dense
 
 ## Open questions
 - None
@@ -90,6 +91,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-21 · `make eval EXPERIMENT=` builds a named Experiment; runs record commit, Document/Chunk counts, Questions under 10 Pages; atomic UTF-8 writes (#27)
 - 2026-10-22 · Corpus settings in the database; ingest refuses mixed settings; runs read them from the database; re-ingest #1 (#28, part 1)
 - 2026-10-22 · `keyword-bm25` on dev: Hit@5 0.10 · MRR@10 0.11 (dense 0.40 · 0.24); right company, wrong year or Page; only 2 Questions in the top 10 by keyword but not dense (#28)
+- 2026-10-23 · `hybrid-rrf` on dev: Hit@5 0.26 · MRR@10 0.18; 4 Questions gained, 11 lost from dense's top 5; evidence in the 50 Chunks for 34 Questions (dense 40) (#29)
 
 ## How to resume
 1. Read this file, `git log --oneline -20` and the open `ready-for-agent` issues. 2. Take the first unchecked task.
