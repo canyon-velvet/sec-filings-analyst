@@ -13,7 +13,7 @@ from sec_filings_analyst.embedder import Embedder, to_pgvector
 @dataclass(frozen=True)
 class SearchResult:
     chunk: Chunk
-    score: float  # higher is closer; the scale depends on the Searcher (cosine, BM25, RRF)
+    score: float  # higher is closer; the scale depends on the Searcher (cosine, BM25, RRF, Scorer)
 
 
 class Searcher(Protocol):
@@ -93,6 +93,29 @@ class HybridSearcher:
                 scores[result.chunk] = scores.get(result.chunk, 0.0) + 1 / (RRF_K + rank)
         top = sorted(scores.items(), key=lambda item: -item[1])[:k]
         return [SearchResult(chunk, score) for chunk, score in top]
+
+
+class Scorer(Protocol):
+    def score(self, pairs: list[tuple[str, str]]) -> list[float]:
+        """One relevance score per (query, Chunk text) pair, in order; higher is more relevant."""
+        ...
+
+
+class RerankingSearcher:
+    """Re-orders another Searcher's Chunks by a Scorer (a cross-encoder reads the query and each
+    Chunk's text together): asks it for max(k, candidates) Chunks and keeps the top k."""
+
+    def __init__(self, searcher: Searcher, scorer: Scorer, candidates: int):
+        self._searcher = searcher
+        self._scorer = scorer
+        self._candidates = candidates
+
+    def search(self, query: str, k: int) -> list[SearchResult]:
+        """The k best-scored Chunks, best first."""
+        chunks = [r.chunk for r in self._searcher.search(query, max(k, self._candidates))]
+        scores = self._scorer.score([(query, chunk.text) for chunk in chunks])
+        ranked = sorted(zip(chunks, scores, strict=True), key=lambda item: -item[1])[:k]
+        return [SearchResult(chunk, score) for chunk, score in ranked]
 
 
 def _results(rows: list[tuple]) -> list[SearchResult]:

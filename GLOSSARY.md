@@ -32,7 +32,7 @@ How every stored Chunk was made: embedding model, chunk tokens, overlap. Stored 
 _Avoid_: config, ingest settings
 
 **Searcher**:
-Anything that returns the top-k Chunks for a query: dense (the Retriever, by embedding), keyword (BM25 over the Chunk's terms), or hybrid (other Searchers' rankings fused with RRF).
+Anything that returns the top-k Chunks for a query: dense (the Retriever, by embedding), keyword (BM25 over the Chunk's terms), hybrid (other Searchers' rankings fused with RRF), or reranking (another Searcher's Chunks re-ordered by a cross-encoder).
 _Avoid_: retriever (that's the dense one), engine
 
 ### Evaluation

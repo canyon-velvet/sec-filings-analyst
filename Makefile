@@ -33,6 +33,7 @@ ingest:
 
 # Scores the stored corpus on a Split, e.g. make eval SPLIT=dev EXPERIMENT=dense-baseline: saves
 # eval/runs/financebench_v1/$(SPLIT)/$(EXPERIMENT).json (never overwritten) and regenerates
-# eval/RESULTS.md.
+# eval/RESULTS.md. Every run installs the rerank group (the local cross-encoder's libraries); only
+# rerank Experiments load it, and download the model on first use.
 eval:
-	uv run --env-file .env python -m sec_filings_analyst.evaluation $(SPLIT) $(EXPERIMENT)
+	uv run --group rerank --env-file .env python -m sec_filings_analyst.evaluation $(SPLIT) $(EXPERIMENT)

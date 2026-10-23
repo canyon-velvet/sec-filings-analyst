@@ -29,7 +29,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 ### Week 2: hybrid (RRF) · reranker · metadata filters · contextual headers · cited answers + answer evals (spec: #26)
 - [x] Named Experiments; runs record commit, corpus counts, Questions under 10 Pages (#27)
 - [x] Keyword search + hybrid RRF: dev Hit@5 0.10 (BM25), 0.26 (hybrid) vs dense 0.40 (#28, #29)
-- [ ] Reranker (#30)
+- [x] Reranker: dev Hit@5 0.32 (50 candidates), 0.30 (100) vs dense 0.40 (#30)
 - [ ] Metadata filters + contextual headers (#31, #32)
 - [ ] Cited Answers + answer evals (#33–#36)
 - [ ] Judge validation + test-Split report (#37, #38)
@@ -67,6 +67,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-22 · Corpus settings (embedding model, chunk + overlap tokens) stored with the first Document; ingest refuses Chunks made differently; runs copy them · a run describes the corpus it searched, not today's code constants (header format joins in #32)
 - 2026-10-22 · Keyword search: BM25 (k1 1.2, b 0.75) in Python over Postgres 'english' lexemes, any shared term · Postgres `ts_rank_cd` has no IDF: dev Hit@5 0.02, subsidiary lists repeating "company" ranked first
 - 2026-10-23 · Hybrid = RRF (k 60) over max(k, 100) candidates per Searcher; ties keep the earlier (dense) list's order · on dev it loses to dense (Hit@5 0.26 vs 0.40): a Chunk both lists rank in their top ~60 beats a dense-only rank 1, so BM25's wrong Pages win; #30 reranks dense
+- 2026-10-23 · Reranker: local cross-encoder ms-marco-MiniLM-L6-v2 (Apache-2.0, pinned) on ONNX Runtime, CPU; libraries in a `rerank` group CI skips · torch has no Intel-Mac wheels; see docs/adr/0001. Both rerank runs lose to plain dense on dev, so `dense-baseline` stays the default Searcher
 
 ## Open questions
 - None
@@ -92,6 +93,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-22 · Corpus settings in the database; ingest refuses mixed settings; runs read them from the database; re-ingest #1 (#28, part 1)
 - 2026-10-22 · `keyword-bm25` on dev: Hit@5 0.10 · MRR@10 0.11 (dense 0.40 · 0.24); right company, wrong year or Page; only 2 Questions in the top 10 by keyword but not dense (#28)
 - 2026-10-23 · `hybrid-rrf` on dev: Hit@5 0.26 · MRR@10 0.18; 4 Questions gained, 11 lost from dense's top 5; evidence in the 50 Chunks for 34 Questions (dense 39, re-run on the same corpus) (#29)
+- 2026-10-23 · `dense-rerank-50` / `-100` on dev: Hit@5 0.32 / 0.30 · MRR@10 0.21 / 0.20, ~10 / 15 s per Question; 5 / 4 gained, 9 / 9 lost vs dense; only ~1% of text cut at 512 tokens (10% sample of Chunks) (#30)
 
 ## How to resume
 1. Read this file, `git log --oneline -20` and the open `ready-for-agent` issues. 2. Take the first unchecked task.
