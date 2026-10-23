@@ -44,11 +44,12 @@ def test_tied_chunks_keep_the_earlier_searcher_s_order():
     ]
 
 
-def test_each_searcher_is_asked_for_the_candidates_and_at_most_k_come_back():
+def test_each_searcher_is_asked_for_max_of_k_and_the_candidates_and_at_most_k_come_back():
     dense = FakeRetriever({Q: [("A", 1), ("A", 2), ("A", 3)]})
     keyword = FakeRetriever({Q: [("B", 1), ("B", 2), ("B", 3)]})
+    hybrid = HybridSearcher([dense, keyword], candidates=3)
 
-    results = HybridSearcher([dense, keyword], candidates=3).search(Q, k=2)
+    assert len(hybrid.search(Q, k=2)) == 2
+    assert len(hybrid.search(Q, k=5)) == 5  # not capped at the candidates
 
-    assert dense.ks == [3] and keyword.ks == [3]
-    assert len(results) == 2
+    assert dense.ks == [3, 5] and keyword.ks == [3, 5]

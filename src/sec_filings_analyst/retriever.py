@@ -72,12 +72,13 @@ class KeywordSearcher:
         return _results([(*columns[chunk], score) for chunk, score in top])
 
 
-RRF_K = 60  # damps the gap between ranks, so no single list dominates the fusion
+RRF_K = 60  # the usual constant: the higher it is, the less a top rank outweighs a lower one
 
 
 class HybridSearcher:
-    """Fuses other Searchers' rankings with Reciprocal Rank Fusion: each asks for `candidates`
-    Chunks, and a Chunk scores the sum of 1/(RRF_K + rank) over the lists it appears in."""
+    """Fuses other Searchers' rankings with Reciprocal Rank Fusion: each is asked for
+    max(k, candidates) Chunks, and a Chunk scores the sum of 1/(RRF_K + rank) over the lists it
+    appears in. Ties keep the order Chunks were first seen in, earlier Searchers first."""
 
     def __init__(self, searchers: list[Searcher], candidates: int):
         self._searchers = searchers
@@ -85,9 +86,10 @@ class HybridSearcher:
 
     def search(self, query: str, k: int) -> list[SearchResult]:
         """The k Chunks with the highest fused score, highest first."""
+        depth = max(k, self._candidates)
         scores: dict[Chunk, float] = {}
         for searcher in self._searchers:
-            for rank, result in enumerate(searcher.search(query, self._candidates), start=1):
+            for rank, result in enumerate(searcher.search(query, depth), start=1):
                 scores[result.chunk] = scores.get(result.chunk, 0.0) + 1 / (RRF_K + rank)
         top = sorted(scores.items(), key=lambda item: -item[1])[:k]
         return [SearchResult(chunk, score) for chunk, score in top]
