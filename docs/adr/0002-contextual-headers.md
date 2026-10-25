@@ -17,8 +17,9 @@ same problem without knowing the answer's Document.
   e.g. `3M 10-K FY2018, page 60`. It is embedded and keyword-indexed as the first line of the
   Chunk, and stored in its own column; the Chunk's stored text stays the Page's own, so Answers
   and Citations quote the Document, not the header.
-- **"FY2018":** 38 of the 50 dev Questions write the year that way, and keyword search matches
-  whole lexemes (`fy2018`); the 11 that write a bare "2018" only match through dense search.
+- **"FY2018":** 34 of the 50 dev Questions write FY and four digits, and keyword search
+  matches whole lexemes (`fy2018`). 4 more write `FY22` or `FY2023Q1` (lexemes `fy22`,
+  `fy2023q1`) and 10 a bare year: those reach the header only through dense search.
 - **Tokens:** the 512-token limit stays on the Page text; the header line (about 12–15 tokens)
   is extra: 0.35M tokens over today's 25,854 Chunks, ≈ $0.007 at $0.02 per million.
 - **Corpus settings** record the header format, so runs before and after the re-ingest are

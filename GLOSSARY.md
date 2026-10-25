@@ -32,7 +32,7 @@ One line made from a Chunk's Document and Page (`3M 10-K FY2018, page 60`), embe
 _Avoid_: prefix, context, title
 
 **Corpus settings**:
-How every stored Chunk was made: embedding model, chunk tokens, overlap. Stored once in the database; a corpus never mixes two.
+How every stored Chunk was made: embedding model, chunk tokens, overlap, Contextual header format. Stored once in the database; a corpus never mixes two.
 _Avoid_: config, ingest settings
 
 **Searcher**:
