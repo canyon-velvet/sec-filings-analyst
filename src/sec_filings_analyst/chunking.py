@@ -11,6 +11,9 @@ from sec_filings_analyst.documents import Chunk, Document
 
 CHUNK_TOKENS = 512
 OVERLAP_TOKENS = 64
+# Each Chunk's Contextual header: embedded and keyword-indexed with it, on top of its 512
+# tokens, but not stored in its text. "FY2018" as most Questions write it, so keyword matches
+HEADER_FORMAT = "{company} {doc_type} FY{fiscal_year}, page {page}"
 
 
 class Tokenizer(Protocol):
@@ -33,6 +36,16 @@ class Cl100kTokenizer:
 
     def decode(self, tokens: list[int]) -> str:
         return self._encoding.decode(tokens)
+
+
+def contextual_header(chunk: Chunk) -> str:
+    document = chunk.document
+    return HEADER_FORMAT.format(
+        company=document.company,
+        doc_type=document.doc_type,
+        fiscal_year=document.fiscal_year,
+        page=chunk.page,
+    )
 
 
 def parse_pages(pdf: Path) -> list[str]:

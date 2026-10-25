@@ -38,6 +38,19 @@ def test_search_ranks_the_page_that_matches_the_query_first(db):
     assert results[0].chunk.text == "Long-term debt was reduced by 300 million dollars."
 
 
+def test_chunks_are_embedded_and_keyword_indexed_with_their_header_but_stored_without(db):
+    client = FakeOpenAIClient()
+
+    ingest({ACME: FIXTURE}, OpenAIEmbedder(client), db, ScriptedConfirm(yes=True))
+
+    (request,) = client.requests
+    debt = "Long-term debt was reduced by 300 million dollars."
+    assert request["input"][1] == f"ACME 10-K FY2023, page 3\n{debt}"
+    results = KeywordSearcher(db).search("ACME", k=5)  # the name is only in the headers
+    assert sorted(r.chunk.page for r in results) == [1, 3]
+    assert [r.chunk.text for r in results if r.chunk.page == 3] == [debt]
+
+
 def test_keyword_search_finds_a_page_by_any_of_the_question_s_terms(db):
     ingest({ACME: FIXTURE}, WordHashEmbedder(), db, ScriptedConfirm(yes=True))
 
@@ -82,12 +95,17 @@ def test_the_corpus_is_described_by_its_counts_and_how_its_chunks_were_made(db):
         "embedding_model": "word-hash",  # the fake's: read back from the database
         "chunk_tokens": 512,
         "overlap_tokens": 64,
+        "header_format": "{company} {doc_type} FY{fiscal_year}, page {page}",
     }
 
 
 def test_a_corpus_without_settings_points_to_db_reset_and_ingest(db):
     with pytest.raises(RuntimeError, match="make db-reset.*make ingest"):
         describe_corpus(db)  # nothing ingested yet
+
+    db.execute("ALTER TABLE corpus_settings DROP COLUMN header_format")  # from before headers
+    with pytest.raises(RuntimeError, match="make db-reset.*make ingest"):
+        describe_corpus(db)
 
     db.execute("DROP TABLE corpus_settings")  # a schema from before corpus settings
     with pytest.raises(RuntimeError, match="make db-reset.*make ingest"):
@@ -118,8 +136,9 @@ def test_declining_the_cost_embeds_and_stores_nothing(db):
 
     ingest({ACME: FIXTURE}, OpenAIEmbedder(client), db, confirm)
 
-    # Page 1: 20 tokens, Page 3: 11 (cl100k_base); $0.02 per million tokens
-    assert confirm.summaries == ["Documents: 1, Chunks: 2, tokens: 31, estimated cost: $0.0000"]
+    # Page 1: 20 tokens, Page 3: 11, plus 13 for each header line (cl100k_base): the 512-token
+    # limit is on the Page text, and the header is paid for on top; $0.02 per million tokens
+    assert confirm.summaries == ["Documents: 1, Chunks: 2, tokens: 57, estimated cost: $0.0000"]
     assert client.requests == []
     assert Retriever(db, WordHashEmbedder()).search("anything", k=5) == []
 
@@ -132,7 +151,8 @@ def test_confirming_stores_every_document_and_a_rerun_skips_stored_ones(db):
 
     ingest({ACME: FIXTURE, beta: FIXTURE}, OpenAIEmbedder(client), db, rerun)  # like a resumed run
 
-    assert rerun.summaries == ["Documents: 1, Chunks: 2, tokens: 31, estimated cost: $0.0000"]
+    # Beta's header lines are 12 tokens each, one fewer than ACME's
+    assert rerun.summaries == ["Documents: 1, Chunks: 2, tokens: 55, estimated cost: $0.0000"]
     assert [len(r["input"]) for r in client.requests] == [2, 2]  # ACME once, then Beta
     results = Retriever(db, WordHashEmbedder()).search("long-term debt", k=10)
     assert sorted((r.chunk.document.name, r.chunk.page) for r in results) == [
@@ -156,8 +176,11 @@ def test_ingest_refuses_to_mix_chunks_made_with_other_settings(db):
     assert describe_corpus(db)["documents"] == 1
 
 
-def test_a_missing_schema_points_to_make_db_reset(db):
-    db.execute("DROP TABLE chunks, documents")
+def test_a_missing_or_outdated_schema_points_to_make_db_reset(db):
+    db.execute("ALTER TABLE corpus_settings DROP COLUMN header_format")  # from before headers
+    with pytest.raises(RuntimeError, match="make db-reset"):
+        ingest({ACME: FIXTURE}, WordHashEmbedder(), db, ScriptedConfirm(yes=True))
 
+    db.execute("DROP TABLE chunks, documents")
     with pytest.raises(RuntimeError, match="make db-reset"):
         ingest({ACME: FIXTURE}, WordHashEmbedder(), db, ScriptedConfirm(yes=True))

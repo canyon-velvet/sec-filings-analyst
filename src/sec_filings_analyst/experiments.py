@@ -69,6 +69,13 @@ EXPERIMENTS: dict[str, tuple[dict, Builder]] = {
     "dense-rerank-100": _dense_reranked(100),
     "dense-oracle-filter": ({"retriever": DENSE, "filter": ORACLE_FILTER}, Retriever),
 }
+# The same stacks, run on the corpus re-ingested with Contextual headers: only the corpus settings
+# their runs record (header_format) differ
+EXPERIMENTS |= {
+    "dense-headers": EXPERIMENTS["dense-baseline"],
+    "keyword-bm25-headers": EXPERIMENTS["keyword-bm25"],
+    "hybrid-rrf-headers": EXPERIMENTS["hybrid-rrf"],
+}
 
 
 def build_experiment(name: str, conn: psycopg.Connection, embedder: Embedder) -> Experiment:
