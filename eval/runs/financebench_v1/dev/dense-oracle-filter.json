@@ -1,0 +1,1694 @@
+{
+  "experiment": "dense-oracle-filter",
+  "split": "financebench_v1/dev",
+  "config": {
+    "retriever": "dense, exact cosine",
+    "filter": "oracle: the Question's own company, Doc type and Fiscal year",
+    "fetch_k": 50
+  },
+  "commit": "4b9f91dec2c5e69615b5d944137dc7a2d063a9a5",
+  "corpus": {
+    "documents": 84,
+    "chunks": 25854,
+    "embedding_model": "text-embedding-3-small",
+    "chunk_tokens": 512,
+    "overlap_tokens": 64
+  },
+  "fewer_than_10_pages": 0,
+  "overall": {
+    "hit_at_1": 0.22,
+    "hit_at_5": 0.6,
+    "hit_at_10": 0.76,
+    "recall_at_10": 0.72,
+    "mrr_at_10": 0.384047619047619,
+    "n": 50
+  },
+  "by_type": {
+    "domain-relevant": {
+      "hit_at_1": 0.11764705882352941,
+      "hit_at_5": 0.47058823529411764,
+      "hit_at_10": 0.6470588235294118,
+      "recall_at_10": 0.6470588235294118,
+      "mrr_at_10": 0.2642857142857143,
+      "n": 17
+    },
+    "metrics-generated": {
+      "hit_at_1": 0.29411764705882354,
+      "hit_at_5": 0.7058823529411765,
+      "hit_at_10": 0.8823529411764706,
+      "recall_at_10": 0.7647058823529411,
+      "mrr_at_10": 0.4696078431372549,
+      "n": 17
+    },
+    "novel-generated": {
+      "hit_at_1": 0.25,
+      "hit_at_5": 0.625,
+      "hit_at_10": 0.75,
+      "recall_at_10": 0.75,
+      "mrr_at_10": 0.42038690476190477,
+      "n": 16
+    }
+  },
+  "questions": {
+    "financebench_id_01226": {
+      "question_type": "domain-relevant",
+      "first_evidence_rank": 7,
+      "evidence_pages": [
+        [
+          "3M_2022_10K",
+          27
+        ]
+      ],
+      "top_pages": [
+        [
+          "3M_2022_10K",
+          21
+        ],
+        [
+          "3M_2022_10K",
+          19
+        ],
+        [
+          "3M_2022_10K",
+          22
+        ],
+        [
+          "3M_2022_10K",
+          121
+        ],
+        [
+          "3M_2022_10K",
+          24
+        ]
+      ]
+    },
+    "financebench_id_01865": {
+      "question_type": "novel-generated",
+      "first_evidence_rank": 36,
+      "evidence_pages": [
+        [
+          "3M_2022_10K",
+          25
+        ]
+      ],
+      "top_pages": [
+        [
+          "3M_2022_10K",
+          21
+        ],
+        [
+          "3M_2022_10K",
+          27
+        ],
+        [
+          "3M_2022_10K",
+          33
+        ],
+        [
+          "3M_2022_10K",
+          32
+        ],
+        [
+          "3M_2022_10K",
+          19
+        ]
+      ]
+    },
+    "financebench_id_00807": {
+      "question_type": "domain-relevant",
+      "first_evidence_rank": 20,
+      "evidence_pages": [
+        [
+          "3M_2023Q2_10Q",
+          5
+        ]
+      ],
+      "top_pages": [
+        [
+          "3M_2023Q2_10Q",
+          70
+        ],
+        [
+          "3M_2023Q2_10Q",
+          73
+        ],
+        [
+          "3M_2023Q2_10Q",
+          71
+        ],
+        [
+          "3M_2023Q2_10Q",
+          3
+        ],
+        [
+          "3M_2023Q2_10Q",
+          18
+        ]
+      ]
+    },
+    "financebench_id_00941": {
+      "question_type": "domain-relevant",
+      "first_evidence_rank": 4,
+      "evidence_pages": [
+        [
+          "3M_2023Q2_10Q",
+          1
+        ]
+      ],
+      "top_pages": [
+        [
+          "3M_2023Q2_10Q",
+          70
+        ],
+        [
+          "3M_2023Q2_10Q",
+          85
+        ],
+        [
+          "3M_2023Q2_10Q",
+          19
+        ],
+        [
+          "3M_2023Q2_10Q",
+          1
+        ],
+        [
+          "3M_2023Q2_10Q",
+          18
+        ]
+      ]
+    },
+    "financebench_id_01858": {
+      "question_type": "novel-generated",
+      "first_evidence_rank": 3,
+      "evidence_pages": [
+        [
+          "3M_2023Q2_10Q",
+          62
+        ]
+      ],
+      "top_pages": [
+        [
+          "3M_2023Q2_10Q",
+          70
+        ],
+        [
+          "3M_2023Q2_10Q",
+          14
+        ],
+        [
+          "3M_2023Q2_10Q",
+          62
+        ],
+        [
+          "3M_2023Q2_10Q",
+          73
+        ],
+        [
+          "3M_2023Q2_10Q",
+          5
+        ]
+      ]
+    },
+    "financebench_id_07507": {
+      "question_type": "metrics-generated",
+      "first_evidence_rank": 2,
+      "evidence_pages": [
+        [
+          "ADOBE_2016_10K",
+          62
+        ]
+      ],
+      "top_pages": [
+        [
+          "ADOBE_2016_10K",
+          101
+        ],
+        [
+          "ADOBE_2016_10K",
+          62
+        ],
+        [
+          "ADOBE_2016_10K",
+          63
+        ],
+        [
+          "ADOBE_2016_10K",
+          44
+        ],
+        [
+          "ADOBE_2016_10K",
+          40
+        ]
+      ]
+    },
+    "financebench_id_00438": {
+      "question_type": "domain-relevant",
+      "first_evidence_rank": 10,
+      "evidence_pages": [
+        [
+          "ADOBE_2022_10K",
+          54
+        ]
+      ],
+      "top_pages": [
+        [
+          "ADOBE_2022_10K",
+          39
+        ],
+        [
+          "ADOBE_2022_10K",
+          58
+        ],
+        [
+          "ADOBE_2022_10K",
+          64
+        ],
+        [
+          "ADOBE_2022_10K",
+          7
+        ],
+        [
+          "ADOBE_2022_10K",
+          3
+        ]
+      ]
+    },
+    "financebench_id_06655": {
+      "question_type": "metrics-generated",
+      "first_evidence_rank": 4,
+      "evidence_pages": [
+        [
+          "AMAZON_2017_10K",
+          38
+        ],
+        [
+          "AMAZON_2017_10K",
+          40
+        ]
+      ],
+      "top_pages": [
+        [
+          "AMAZON_2017_10K",
+          43
+        ],
+        [
+          "AMAZON_2017_10K",
+          20
+        ],
+        [
+          "AMAZON_2017_10K",
+          34
+        ],
+        [
+          "AMAZON_2017_10K",
+          38
+        ],
+        [
+          "AMAZON_2017_10K",
+          52
+        ]
+      ]
+    },
+    "financebench_id_01936": {
+      "question_type": "novel-generated",
+      "first_evidence_rank": 6,
+      "evidence_pages": [
+        [
+          "AMCOR_2023Q2_10Q",
+          15
+        ]
+      ],
+      "top_pages": [
+        [
+          "AMCOR_2023Q2_10Q",
+          32
+        ],
+        [
+          "AMCOR_2023Q2_10Q",
+          42
+        ],
+        [
+          "AMCOR_2023Q2_10Q",
+          10
+        ],
+        [
+          "AMCOR_2023Q2_10Q",
+          4
+        ],
+        [
+          "AMCOR_2023Q2_10Q",
+          1
+        ]
+      ]
+    },
+    "financebench_id_03069": {
+      "question_type": "metrics-generated",
+      "first_evidence_rank": 2,
+      "evidence_pages": [
+        [
+          "AMD_2015_10K",
+          56
+        ],
+        [
+          "AMD_2015_10K",
+          60
+        ]
+      ],
+      "top_pages": [
+        [
+          "AMD_2015_10K",
+          34
+        ],
+        [
+          "AMD_2015_10K",
+          56
+        ],
+        [
+          "AMD_2015_10K",
+          61
+        ],
+        [
+          "AMD_2015_10K",
+          4
+        ],
+        [
+          "AMD_2015_10K",
+          43
+        ]
+      ]
+    },
+    "financebench_id_00222": {
+      "question_type": "domain-relevant",
+      "first_evidence_rank": 17,
+      "evidence_pages": [
+        [
+          "AMD_2022_10K",
+          56
+        ]
+      ],
+      "top_pages": [
+        [
+          "AMD_2022_10K",
+          104
+        ],
+        [
+          "AMD_2022_10K",
+          105
+        ],
+        [
+          "AMD_2022_10K",
+          4
+        ],
+        [
+          "AMD_2022_10K",
+          101
+        ],
+        [
+          "AMD_2022_10K",
+          43
+        ]
+      ]
+    },
+    "financebench_id_01198": {
+      "question_type": "domain-relevant",
+      "first_evidence_rank": 1,
+      "evidence_pages": [
+        [
+          "AMD_2022_10K",
+          43
+        ]
+      ],
+      "top_pages": [
+        [
+          "AMD_2022_10K",
+          43
+        ],
+        [
+          "AMD_2022_10K",
+          4
+        ],
+        [
+          "AMD_2022_10K",
+          44
+        ],
+        [
+          "AMD_2022_10K",
+          14
+        ],
+        [
+          "AMD_2022_10K",
+          48
+        ]
+      ]
+    },
+    "financebench_id_00757": {
+      "question_type": "novel-generated",
+      "first_evidence_rank": 27,
+      "evidence_pages": [
+        [
+          "AMD_2022_10K",
+          12
+        ]
+      ],
+      "top_pages": [
+        [
+          "AMD_2022_10K",
+          43
+        ],
+        [
+          "AMD_2022_10K",
+          44
+        ],
+        [
+          "AMD_2022_10K",
+          4
+        ],
+        [
+          "AMD_2022_10K",
+          5
+        ],
+        [
+          "AMD_2022_10K",
+          42
+        ]
+      ]
+    },
+    "financebench_id_01028": {
+      "question_type": "domain-relevant",
+      "first_evidence_rank": null,
+      "evidence_pages": [
+        [
+          "AMERICANEXPRESS_2022_10K",
+          155
+        ]
+      ],
+      "top_pages": [
+        [
+          "AMERICANEXPRESS_2022_10K",
+          6
+        ],
+        [
+          "AMERICANEXPRESS_2022_10K",
+          5
+        ],
+        [
+          "AMERICANEXPRESS_2022_10K",
+          4
+        ],
+        [
+          "AMERICANEXPRESS_2022_10K",
+          153
+        ],
+        [
+          "AMERICANEXPRESS_2022_10K",
+          43
+        ]
+      ]
+    },
+    "financebench_id_00720": {
+      "question_type": "domain-relevant",
+      "first_evidence_rank": null,
+      "evidence_pages": [
+        [
+          "AMERICANEXPRESS_2022_10K",
+          96
+        ]
+      ],
+      "top_pages": [
+        [
+          "AMERICANEXPRESS_2022_10K",
+          85
+        ],
+        [
+          "AMERICANEXPRESS_2022_10K",
+          5
+        ],
+        [
+          "AMERICANEXPRESS_2022_10K",
+          64
+        ],
+        [
+          "AMERICANEXPRESS_2022_10K",
+          43
+        ],
+        [
+          "AMERICANEXPRESS_2022_10K",
+          46
+        ]
+      ]
+    },
+    "financebench_id_01981": {
+      "question_type": "novel-generated",
+      "first_evidence_rank": 2,
+      "evidence_pages": [
+        [
+          "AMERICANEXPRESS_2022_10K",
+          45
+        ]
+      ],
+      "top_pages": [
+        [
+          "AMERICANEXPRESS_2022_10K",
+          49
+        ],
+        [
+          "AMERICANEXPRESS_2022_10K",
+          45
+        ],
+        [
+          "AMERICANEXPRESS_2022_10K",
+          85
+        ],
+        [
+          "AMERICANEXPRESS_2022_10K",
+          46
+        ],
+        [
+          "AMERICANEXPRESS_2022_10K",
+          6
+        ]
+      ]
+    },
+    "financebench_id_04254": {
+      "question_type": "metrics-generated",
+      "first_evidence_rank": 1,
+      "evidence_pages": [
+        [
+          "AMERICANWATERWORKS_2021_10K",
+          86
+        ],
+        [
+          "AMERICANWATERWORKS_2021_10K",
+          88
+        ]
+      ],
+      "top_pages": [
+        [
+          "AMERICANWATERWORKS_2021_10K",
+          86
+        ],
+        [
+          "AMERICANWATERWORKS_2021_10K",
+          88
+        ],
+        [
+          "AMERICANWATERWORKS_2021_10K",
+          87
+        ],
+        [
+          "AMERICANWATERWORKS_2021_10K",
+          52
+        ],
+        [
+          "AMERICANWATERWORKS_2021_10K",
+          84
+        ]
+      ]
+    },
+    "financebench_id_02608": {
+      "question_type": "metrics-generated",
+      "first_evidence_rank": 5,
+      "evidence_pages": [
+        [
+          "BESTBUY_2017_10K",
+          56
+        ]
+      ],
+      "top_pages": [
+        [
+          "BESTBUY_2017_10K",
+          26
+        ],
+        [
+          "BESTBUY_2017_10K",
+          31
+        ],
+        [
+          "BESTBUY_2017_10K",
+          91
+        ],
+        [
+          "BESTBUY_2017_10K",
+          81
+        ],
+        [
+          "BESTBUY_2017_10K",
+          56
+        ]
+      ]
+    },
+    "financebench_id_00288": {
+      "question_type": "novel-generated",
+      "first_evidence_rank": 2,
+      "evidence_pages": [
+        [
+          "BESTBUY_2024Q2_10Q",
+          20
+        ]
+      ],
+      "top_pages": [
+        [
+          "BESTBUY_2024Q2_10Q",
+          21
+        ],
+        [
+          "BESTBUY_2024Q2_10Q",
+          20
+        ],
+        [
+          "BESTBUY_2024Q2_10Q",
+          6
+        ],
+        [
+          "BESTBUY_2024Q2_10Q",
+          22
+        ],
+        [
+          "BESTBUY_2024Q2_10Q",
+          8
+        ]
+      ]
+    },
+    "financebench_id_01902": {
+      "question_type": "novel-generated",
+      "first_evidence_rank": 4,
+      "evidence_pages": [
+        [
+          "BESTBUY_2024Q2_10Q",
+          18
+        ]
+      ],
+      "top_pages": [
+        [
+          "BESTBUY_2024Q2_10Q",
+          17
+        ],
+        [
+          "BESTBUY_2024Q2_10Q",
+          19
+        ],
+        [
+          "BESTBUY_2024Q2_10Q",
+          14
+        ],
+        [
+          "BESTBUY_2024Q2_10Q",
+          18
+        ],
+        [
+          "BESTBUY_2024Q2_10Q",
+          16
+        ]
+      ]
+    },
+    "financebench_id_01091": {
+      "question_type": "domain-relevant",
+      "first_evidence_rank": 1,
+      "evidence_pages": [
+        [
+          "BOEING_2022_10K",
+          113
+        ]
+      ],
+      "top_pages": [
+        [
+          "BOEING_2022_10K",
+          113
+        ],
+        [
+          "BOEING_2022_10K",
+          27
+        ],
+        [
+          "BOEING_2022_10K",
+          43
+        ],
+        [
+          "BOEING_2022_10K",
+          29
+        ],
+        [
+          "BOEING_2022_10K",
+          5
+        ]
+      ]
+    },
+    "financebench_id_00494": {
+      "question_type": "novel-generated",
+      "first_evidence_rank": 1,
+      "evidence_pages": [
+        [
+          "BOEING_2022_10K",
+          9
+        ]
+      ],
+      "top_pages": [
+        [
+          "BOEING_2022_10K",
+          9
+        ],
+        [
+          "BOEING_2022_10K",
+          10
+        ],
+        [
+          "BOEING_2022_10K",
+          35
+        ],
+        [
+          "BOEING_2022_10K",
+          33
+        ],
+        [
+          "BOEING_2022_10K",
+          5
+        ]
+      ]
+    },
+    "financebench_id_00005": {
+      "question_type": "domain-relevant",
+      "first_evidence_rank": 12,
+      "evidence_pages": [
+        [
+          "CORNING_2022_10K",
+          60
+        ]
+      ],
+      "top_pages": [
+        [
+          "CORNING_2022_10K",
+          66
+        ],
+        [
+          "CORNING_2022_10K",
+          64
+        ],
+        [
+          "CORNING_2022_10K",
+          68
+        ],
+        [
+          "CORNING_2022_10K",
+          74
+        ],
+        [
+          "CORNING_2022_10K",
+          20
+        ]
+      ]
+    },
+    "financebench_id_01107": {
+      "question_type": "domain-relevant",
+      "first_evidence_rank": 3,
+      "evidence_pages": [
+        [
+          "CVSHEALTH_2022_10K",
+          173
+        ],
+        [
+          "CVSHEALTH_2022_10K",
+          174
+        ]
+      ],
+      "top_pages": [
+        [
+          "CVSHEALTH_2022_10K",
+          175
+        ],
+        [
+          "CVSHEALTH_2022_10K",
+          177
+        ],
+        [
+          "CVSHEALTH_2022_10K",
+          174
+        ],
+        [
+          "CVSHEALTH_2022_10K",
+          164
+        ],
+        [
+          "CVSHEALTH_2022_10K",
+          133
+        ]
+      ]
+    },
+    "financebench_id_01244": {
+      "question_type": "domain-relevant",
+      "first_evidence_rank": 2,
+      "evidence_pages": [
+        [
+          "CVSHEALTH_2022_10K",
+          68
+        ]
+      ],
+      "top_pages": [
+        [
+          "CVSHEALTH_2022_10K",
+          92
+        ],
+        [
+          "CVSHEALTH_2022_10K",
+          68
+        ],
+        [
+          "CVSHEALTH_2022_10K",
+          168
+        ],
+        [
+          "CVSHEALTH_2022_10K",
+          108
+        ],
+        [
+          "CVSHEALTH_2022_10K",
+          110
+        ]
+      ]
+    },
+    "financebench_id_00839": {
+      "question_type": "novel-generated",
+      "first_evidence_rank": 3,
+      "evidence_pages": [
+        [
+          "FOOTLOCKER_2022_8K_dated_2022-08-19",
+          2
+        ]
+      ],
+      "top_pages": [
+        [
+          "FOOTLOCKER_2022_8K_dated_2022-08-19",
+          29
+        ],
+        [
+          "FOOTLOCKER_2022_8K_dated_2022-08-19",
+          30
+        ],
+        [
+          "FOOTLOCKER_2022_8K_dated_2022-08-19",
+          2
+        ],
+        [
+          "FOOTLOCKER_2022_8K_dated_2022-08-19",
+          31
+        ],
+        [
+          "FOOTLOCKER_2022_8K_dated_2022-08-19",
+          5
+        ]
+      ]
+    },
+    "financebench_id_03471": {
+      "question_type": "metrics-generated",
+      "first_evidence_rank": 3,
+      "evidence_pages": [
+        [
+          "GENERALMILLS_2020_10K",
+          50
+        ]
+      ],
+      "top_pages": [
+        [
+          "GENERALMILLS_2020_10K",
+          27
+        ],
+        [
+          "GENERALMILLS_2020_10K",
+          17
+        ],
+        [
+          "GENERALMILLS_2020_10K",
+          50
+        ],
+        [
+          "GENERALMILLS_2020_10K",
+          52
+        ],
+        [
+          "GENERALMILLS_2020_10K",
+          30
+        ]
+      ]
+    },
+    "financebench_id_04854": {
+      "question_type": "metrics-generated",
+      "first_evidence_rank": 1,
+      "evidence_pages": [
+        [
+          "GENERALMILLS_2020_10K",
+          52
+        ]
+      ],
+      "top_pages": [
+        [
+          "GENERALMILLS_2020_10K",
+          52
+        ],
+        [
+          "GENERALMILLS_2020_10K",
+          20
+        ],
+        [
+          "GENERALMILLS_2020_10K",
+          17
+        ],
+        [
+          "GENERALMILLS_2020_10K",
+          48
+        ],
+        [
+          "GENERALMILLS_2020_10K",
+          26
+        ]
+      ]
+    },
+    "financebench_id_00669": {
+      "question_type": "domain-relevant",
+      "first_evidence_rank": 38,
+      "evidence_pages": [
+        [
+          "JOHNSON_JOHNSON_2022_10K",
+          34
+        ]
+      ],
+      "top_pages": [
+        [
+          "JOHNSON_JOHNSON_2022_10K",
+          52
+        ],
+        [
+          "JOHNSON_JOHNSON_2022_10K",
+          27
+        ],
+        [
+          "JOHNSON_JOHNSON_2022_10K",
+          113
+        ],
+        [
+          "JOHNSON_JOHNSON_2022_10K",
+          26
+        ],
+        [
+          "JOHNSON_JOHNSON_2022_10K",
+          36
+        ]
+      ]
+    },
+    "financebench_id_01484": {
+      "question_type": "novel-generated",
+      "first_evidence_rank": 7,
+      "evidence_pages": [
+        [
+          "JOHNSON_JOHNSON_2022Q4_EARNINGS",
+          2
+        ]
+      ],
+      "top_pages": [
+        [
+          "JOHNSON_JOHNSON_2022Q4_EARNINGS",
+          9
+        ],
+        [
+          "JOHNSON_JOHNSON_2022Q4_EARNINGS",
+          8
+        ],
+        [
+          "JOHNSON_JOHNSON_2022Q4_EARNINGS",
+          1
+        ],
+        [
+          "JOHNSON_JOHNSON_2022Q4_EARNINGS",
+          14
+        ],
+        [
+          "JOHNSON_JOHNSON_2022Q4_EARNINGS",
+          13
+        ]
+      ]
+    },
+    "financebench_id_00394": {
+      "question_type": "novel-generated",
+      "first_evidence_rank": 28,
+      "evidence_pages": [
+        [
+          "JPMORGAN_2022Q2_10Q",
+          21
+        ]
+      ],
+      "top_pages": [
+        [
+          "JPMORGAN_2022Q2_10Q",
+          7
+        ],
+        [
+          "JPMORGAN_2022Q2_10Q",
+          5
+        ],
+        [
+          "JPMORGAN_2022Q2_10Q",
+          177
+        ],
+        [
+          "JPMORGAN_2022Q2_10Q",
+          41
+        ],
+        [
+          "JPMORGAN_2022Q2_10Q",
+          10
+        ]
+      ]
+    },
+    "financebench_id_02049": {
+      "question_type": "novel-generated",
+      "first_evidence_rank": 1,
+      "evidence_pages": [
+        [
+          "JPMORGAN_2023Q2_10Q",
+          85
+        ]
+      ],
+      "top_pages": [
+        [
+          "JPMORGAN_2023Q2_10Q",
+          85
+        ],
+        [
+          "JPMORGAN_2023Q2_10Q",
+          84
+        ],
+        [
+          "JPMORGAN_2023Q2_10Q",
+          89
+        ],
+        [
+          "JPMORGAN_2023Q2_10Q",
+          114
+        ],
+        [
+          "JPMORGAN_2023Q2_10Q",
+          8
+        ]
+      ]
+    },
+    "financebench_id_04412": {
+      "question_type": "metrics-generated",
+      "first_evidence_rank": 1,
+      "evidence_pages": [
+        [
+          "LOCKHEEDMARTIN_2020_10K",
+          67
+        ],
+        [
+          "LOCKHEEDMARTIN_2020_10K",
+          69
+        ]
+      ],
+      "top_pages": [
+        [
+          "LOCKHEEDMARTIN_2020_10K",
+          69
+        ],
+        [
+          "LOCKHEEDMARTIN_2020_10K",
+          50
+        ],
+        [
+          "LOCKHEEDMARTIN_2020_10K",
+          28
+        ],
+        [
+          "LOCKHEEDMARTIN_2020_10K",
+          1
+        ],
+        [
+          "LOCKHEEDMARTIN_2020_10K",
+          9
+        ]
+      ]
+    },
+    "financebench_id_03031": {
+      "question_type": "metrics-generated",
+      "first_evidence_rank": 1,
+      "evidence_pages": [
+        [
+          "LOCKHEEDMARTIN_2021_10K",
+          68
+        ]
+      ],
+      "top_pages": [
+        [
+          "LOCKHEEDMARTIN_2021_10K",
+          68
+        ],
+        [
+          "LOCKHEEDMARTIN_2021_10K",
+          1
+        ],
+        [
+          "LOCKHEEDMARTIN_2021_10K",
+          69
+        ],
+        [
+          "LOCKHEEDMARTIN_2021_10K",
+          67
+        ],
+        [
+          "LOCKHEEDMARTIN_2021_10K",
+          76
+        ]
+      ]
+    },
+    "financebench_id_04171": {
+      "question_type": "metrics-generated",
+      "first_evidence_rank": 13,
+      "evidence_pages": [
+        [
+          "MGMRESORTS_2018_10K",
+          57
+        ]
+      ],
+      "top_pages": [
+        [
+          "MGMRESORTS_2018_10K",
+          31
+        ],
+        [
+          "MGMRESORTS_2018_10K",
+          50
+        ],
+        [
+          "MGMRESORTS_2018_10K",
+          186
+        ],
+        [
+          "MGMRESORTS_2018_10K",
+          49
+        ],
+        [
+          "MGMRESORTS_2018_10K",
+          101
+        ]
+      ]
+    },
+    "financebench_id_03849": {
+      "question_type": "metrics-generated",
+      "first_evidence_rank": 6,
+      "evidence_pages": [
+        [
+          "MGMRESORTS_2020_10K",
+          65
+        ],
+        [
+          "MGMRESORTS_2020_10K",
+          67
+        ]
+      ],
+      "top_pages": [
+        [
+          "MGMRESORTS_2020_10K",
+          52
+        ],
+        [
+          "MGMRESORTS_2020_10K",
+          56
+        ],
+        [
+          "MGMRESORTS_2020_10K",
+          68
+        ],
+        [
+          "MGMRESORTS_2020_10K",
+          102
+        ],
+        [
+          "MGMRESORTS_2020_10K",
+          101
+        ]
+      ]
+    },
+    "financebench_id_01911": {
+      "question_type": "novel-generated",
+      "first_evidence_rank": 1,
+      "evidence_pages": [
+        [
+          "MGMRESORTS_2022Q4_EARNINGS",
+          14
+        ]
+      ],
+      "top_pages": [
+        [
+          "MGMRESORTS_2022Q4_EARNINGS",
+          14
+        ],
+        [
+          "MGMRESORTS_2022Q4_EARNINGS",
+          4
+        ],
+        [
+          "MGMRESORTS_2022Q4_EARNINGS",
+          13
+        ],
+        [
+          "MGMRESORTS_2022Q4_EARNINGS",
+          11
+        ],
+        [
+          "MGMRESORTS_2022Q4_EARNINGS",
+          6
+        ]
+      ]
+    },
+    "financebench_id_04700": {
+      "question_type": "metrics-generated",
+      "first_evidence_rank": 23,
+      "evidence_pages": [
+        [
+          "MICROSOFT_2016_10K",
+          52
+        ]
+      ],
+      "top_pages": [
+        [
+          "MICROSOFT_2016_10K",
+          94
+        ],
+        [
+          "MICROSOFT_2016_10K",
+          85
+        ],
+        [
+          "MICROSOFT_2016_10K",
+          44
+        ],
+        [
+          "MICROSOFT_2016_10K",
+          29
+        ],
+        [
+          "MICROSOFT_2016_10K",
+          58
+        ]
+      ]
+    },
+    "financebench_id_04458": {
+      "question_type": "metrics-generated",
+      "first_evidence_rank": 2,
+      "evidence_pages": [
+        [
+          "NETFLIX_2015_10K",
+          40
+        ],
+        [
+          "NETFLIX_2015_10K",
+          42
+        ]
+      ],
+      "top_pages": [
+        [
+          "NETFLIX_2015_10K",
+          27
+        ],
+        [
+          "NETFLIX_2015_10K",
+          42
+        ],
+        [
+          "NETFLIX_2015_10K",
+          40
+        ],
+        [
+          "NETFLIX_2015_10K",
+          41
+        ],
+        [
+          "NETFLIX_2015_10K",
+          39
+        ]
+      ]
+    },
+    "financebench_id_03282": {
+      "question_type": "metrics-generated",
+      "first_evidence_rank": 1,
+      "evidence_pages": [
+        [
+          "NETFLIX_2017_10K",
+          45
+        ]
+      ],
+      "top_pages": [
+        [
+          "NETFLIX_2017_10K",
+          45
+        ],
+        [
+          "NETFLIX_2017_10K",
+          42
+        ],
+        [
+          "NETFLIX_2017_10K",
+          44
+        ],
+        [
+          "NETFLIX_2017_10K",
+          30
+        ],
+        [
+          "NETFLIX_2017_10K",
+          43
+        ]
+      ]
+    },
+    "financebench_id_04080": {
+      "question_type": "metrics-generated",
+      "first_evidence_rank": 6,
+      "evidence_pages": [
+        [
+          "NIKE_2021_10K",
+          59
+        ],
+        [
+          "NIKE_2021_10K",
+          61
+        ]
+      ],
+      "top_pages": [
+        [
+          "NIKE_2021_10K",
+          30
+        ],
+        [
+          "NIKE_2021_10K",
+          35
+        ],
+        [
+          "NIKE_2021_10K",
+          36
+        ],
+        [
+          "NIKE_2021_10K",
+          32
+        ],
+        [
+          "NIKE_2021_10K",
+          31
+        ]
+      ]
+    },
+    "financebench_id_01163": {
+      "question_type": "domain-relevant",
+      "first_evidence_rank": 6,
+      "evidence_pages": [
+        [
+          "NIKE_2023_10K",
+          62
+        ]
+      ],
+      "top_pages": [
+        [
+          "NIKE_2023_10K",
+          48
+        ],
+        [
+          "NIKE_2023_10K",
+          49
+        ],
+        [
+          "NIKE_2023_10K",
+          32
+        ],
+        [
+          "NIKE_2023_10K",
+          82
+        ],
+        [
+          "NIKE_2023_10K",
+          37
+        ]
+      ]
+    },
+    "financebench_id_04980": {
+      "question_type": "metrics-generated",
+      "first_evidence_rank": 5,
+      "evidence_pages": [
+        [
+          "PEPSICO_2021_10K",
+          63
+        ]
+      ],
+      "top_pages": [
+        [
+          "PEPSICO_2021_10K",
+          53
+        ],
+        [
+          "PEPSICO_2021_10K",
+          66
+        ],
+        [
+          "PEPSICO_2021_10K",
+          64
+        ],
+        [
+          "PEPSICO_2021_10K",
+          54
+        ],
+        [
+          "PEPSICO_2021_10K",
+          63
+        ]
+      ]
+    },
+    "financebench_id_01009": {
+      "question_type": "domain-relevant",
+      "first_evidence_rank": 4,
+      "evidence_pages": [
+        [
+          "PEPSICO_2022_10K",
+          4
+        ],
+        [
+          "PEPSICO_2022_10K",
+          5
+        ]
+      ],
+      "top_pages": [
+        [
+          "PEPSICO_2022_10K",
+          32
+        ],
+        [
+          "PEPSICO_2022_10K",
+          13
+        ],
+        [
+          "PEPSICO_2022_10K",
+          488
+        ],
+        [
+          "PEPSICO_2022_10K",
+          4
+        ],
+        [
+          "PEPSICO_2022_10K",
+          478
+        ]
+      ]
+    },
+    "financebench_id_01328": {
+      "question_type": "domain-relevant",
+      "first_evidence_rank": 2,
+      "evidence_pages": [
+        [
+          "PEPSICO_2022_10K",
+          78
+        ]
+      ],
+      "top_pages": [
+        [
+          "PEPSICO_2022_10K",
+          49
+        ],
+        [
+          "PEPSICO_2022_10K",
+          78
+        ],
+        [
+          "PEPSICO_2022_10K",
+          71
+        ],
+        [
+          "PEPSICO_2022_10K",
+          87
+        ],
+        [
+          "PEPSICO_2022_10K",
+          72
+        ]
+      ]
+    },
+    "financebench_id_04481": {
+      "question_type": "metrics-generated",
+      "first_evidence_rank": 6,
+      "evidence_pages": [
+        [
+          "PEPSICO_2022_10K",
+          62
+        ],
+        [
+          "PEPSICO_2022_10K",
+          64
+        ]
+      ],
+      "top_pages": [
+        [
+          "PEPSICO_2022_10K",
+          40
+        ],
+        [
+          "PEPSICO_2022_10K",
+          49
+        ],
+        [
+          "PEPSICO_2022_10K",
+          103
+        ],
+        [
+          "PEPSICO_2022_10K",
+          47
+        ],
+        [
+          "PEPSICO_2022_10K",
+          67
+        ]
+      ]
+    },
+    "financebench_id_00705": {
+      "question_type": "novel-generated",
+      "first_evidence_rank": 1,
+      "evidence_pages": [
+        [
+          "PEPSICO_2023_8K_dated-2023-05-30",
+          2
+        ]
+      ],
+      "top_pages": [
+        [
+          "PEPSICO_2023_8K_dated-2023-05-30",
+          2
+        ],
+        [
+          "PEPSICO_2023_8K_dated-2023-05-30",
+          81
+        ],
+        [
+          "PEPSICO_2023_8K_dated-2023-05-30",
+          85
+        ],
+        [
+          "PEPSICO_2023_8K_dated-2023-05-30",
+          5
+        ],
+        [
+          "PEPSICO_2023_8K_dated-2023-05-30",
+          9
+        ]
+      ]
+    },
+    "financebench_id_01476": {
+      "question_type": "novel-generated",
+      "first_evidence_rank": 2,
+      "evidence_pages": [
+        [
+          "PEPSICO_2023Q1_EARNINGS",
+          1
+        ]
+      ],
+      "top_pages": [
+        [
+          "PEPSICO_2023Q1_EARNINGS",
+          3
+        ],
+        [
+          "PEPSICO_2023Q1_EARNINGS",
+          1
+        ],
+        [
+          "PEPSICO_2023Q1_EARNINGS",
+          12
+        ],
+        [
+          "PEPSICO_2023Q1_EARNINGS",
+          11
+        ],
+        [
+          "PEPSICO_2023Q1_EARNINGS",
+          2
+        ]
+      ]
+    },
+    "financebench_id_00702": {
+      "question_type": "novel-generated",
+      "first_evidence_rank": 26,
+      "evidence_pages": [
+        [
+          "PFIZER_2021_10K",
+          57
+        ]
+      ],
+      "top_pages": [
+        [
+          "PFIZER_2021_10K",
+          78
+        ],
+        [
+          "PFIZER_2021_10K",
+          112
+        ],
+        [
+          "PFIZER_2021_10K",
+          44
+        ],
+        [
+          "PFIZER_2021_10K",
+          108
+        ],
+        [
+          "PFIZER_2021_10K",
+          64
+        ]
+      ]
+    },
+    "financebench_id_00566": {
+      "question_type": "domain-relevant",
+      "first_evidence_rank": 4,
+      "evidence_pages": [
+        [
+          "VERIZON_2022_10K",
+          77
+        ]
+      ],
+      "top_pages": [
+        [
+          "VERIZON_2022_10K",
+          40
+        ],
+        [
+          "VERIZON_2022_10K",
+          78
+        ],
+        [
+          "VERIZON_2022_10K",
+          113
+        ],
+        [
+          "VERIZON_2022_10K",
+          77
+        ],
+        [
+          "VERIZON_2022_10K",
+          56
+        ]
+      ]
+    }
+  }
+}

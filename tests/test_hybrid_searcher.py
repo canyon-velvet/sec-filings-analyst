@@ -1,7 +1,7 @@
 import pytest
 from fakes.retriever import FakeRetriever
 
-from sec_filings_analyst.retriever import HybridSearcher
+from sec_filings_analyst.retriever import Filter, HybridSearcher
 
 Q = "What was ACME's FY2020 capex?"
 
@@ -53,3 +53,12 @@ def test_each_searcher_is_asked_for_max_of_k_and_the_candidates_and_at_most_k_co
     assert len(hybrid.search(Q, k=5)) == 5  # not capped at the candidates
 
     assert dense.ks == [3, 5] and keyword.ks == [3, 5]
+
+
+def test_the_filter_is_passed_to_each_searcher():
+    dense, keyword = FakeRetriever({Q: [("A", 1)]}), FakeRetriever({Q: [("A", 1)]})
+    acme_2020 = Filter(company="ACME", fiscal_year=2020)
+
+    HybridSearcher([dense, keyword], candidates=10).search(Q, k=5, filter=acme_2020)
+
+    assert dense.filters == [acme_2020] and keyword.filters == [acme_2020]

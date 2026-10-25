@@ -35,6 +35,10 @@ _Avoid_: config, ingest settings
 Anything that returns the top-k Chunks for a query: dense (the Retriever, by embedding), keyword (BM25 over the Chunk's terms), hybrid (other Searchers' rankings fused with RRF), or reranking (another Searcher's Chunks re-ordered by a cross-encoder).
 _Avoid_: retriever (that's the dense one), engine
 
+**Filter**:
+Which Documents a search may return Chunks from, by company, Doc type and Fiscal year (each optional). An oracle filter is a Question's Document's company, Doc type and Fiscal year, which only an eval knows (two 8-Ks can share them).
+_Avoid_: where clause, scope
+
 ### Evaluation
 
 **Question**:

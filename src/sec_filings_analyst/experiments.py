@@ -24,12 +24,20 @@ class Experiment:
     settings: dict  # how its Searcher is built; recorded in each run
     searcher: Searcher
 
+    @property
+    def oracle_filter(self) -> bool:
+        """Whether each Question's search is filtered to its Document's company, Doc type and
+        Fiscal year, which no user knows: an upper bound. Read from the settings, so a run's
+        record always says."""
+        return self.settings.get("filter") == ORACLE_FILTER
+
 
 DENSE = "dense, exact cosine"
 KEYWORD = f"keyword, BM25 (k1 {K1}, b {B}) over Postgres 'english' lexemes, any term"
 # Per Searcher, or k if larger: at the eval's k (50) each list reaches past k, so a Chunk just past
 # one list's cut can still count
 HYBRID_CANDIDATES = 100
+ORACLE_FILTER = "oracle: the Question's own company, Doc type and Fiscal year"
 RERANKER = f"cross-encoder {cross_encoder.MODEL}@{cross_encoder.REVISION[:7]}, ONNX on CPU"
 
 
@@ -59,6 +67,7 @@ EXPERIMENTS: dict[str, tuple[dict, Builder]] = {
     # Candidates tuned on dev only: reranking 50 re-orders dense's Chunks, 100 also widens the pool
     "dense-rerank-50": _dense_reranked(50),
     "dense-rerank-100": _dense_reranked(100),
+    "dense-oracle-filter": ({"retriever": DENSE, "filter": ORACLE_FILTER}, Retriever),
 }
 
 

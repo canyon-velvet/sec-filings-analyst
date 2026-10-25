@@ -1,7 +1,7 @@
 from fakes.retriever import FakeRetriever
 from fakes.scorer import FakeScorer
 
-from sec_filings_analyst.retriever import RerankingSearcher
+from sec_filings_analyst.retriever import Filter, RerankingSearcher
 
 Q = "What was ACME's FY2020 capex?"
 
@@ -38,3 +38,12 @@ def test_tied_scores_keep_the_inner_searcher_s_order():
     results = RerankingSearcher(inner, scorer, candidates=3).search(Q, k=3)
 
     assert pages(results) == [("B", 7), ("A", 1), ("A", 2)]
+
+
+def test_the_filter_is_passed_to_the_inner_searcher():
+    inner = FakeRetriever({Q: [("A", 1)]})
+    acme_2020 = Filter(company="ACME", fiscal_year=2020)
+
+    RerankingSearcher(inner, FakeScorer({}), candidates=3).search(Q, k=1, filter=acme_2020)
+
+    assert inner.filters == [acme_2020]
