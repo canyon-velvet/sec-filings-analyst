@@ -33,8 +33,8 @@ def run_eval(
     expected = experiment.settings.get("header_format")  # None: bare Chunks
     corpus = provenance["corpus"].get("header_format")
     if corpus != expected:
-        want = f"headers {expected!r}" if expected else "without headers"
-        raise ValueError(f"{name} expects Chunks {want}, but the corpus has {corpus!r}")
+        expects, has = (f"headers {f!r}" if f else "no headers" for f in (expected, corpus))
+        raise ValueError(f"{name} expects Chunks with {expects}, but the corpus has {has}")
     retrievals = {}
     for question in questions:
         filter = None
@@ -144,7 +144,7 @@ if __name__ == "__main__":
     from sec_filings_analyst.financebench import load_questions
     from sec_filings_analyst.ingest import describe_corpus
 
-    split_name, name = sys.argv[1:]  # e.g. dev dense-baseline
+    split_name, name = sys.argv[1:]  # e.g. dev dense-headers
     split_file = Path("eval/splits/financebench_v1.json")
     ids = set(json.loads(split_file.read_text())[split_name])
     all_questions = load_questions(Path("data/financebench/financebench_merged.jsonl"))

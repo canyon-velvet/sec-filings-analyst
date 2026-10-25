@@ -102,7 +102,7 @@ def test_an_experiment_runs_only_on_chunks_with_the_header_format_it_expects(tmp
     retriever = FakeRetriever(HITS)
 
     # dense-baseline expects bare Chunks: run on headered ones, its name would hide that
-    with pytest.raises(ValueError, match="dense-baseline expects Chunks without headers"):
+    with pytest.raises(ValueError, match="dense-baseline expects Chunks with no headers, but the"):
         run_eval(baseline(retriever), "dev", QUESTIONS, headered, tmp_path)
     assert retriever.ks == []  # refused before any search
 
