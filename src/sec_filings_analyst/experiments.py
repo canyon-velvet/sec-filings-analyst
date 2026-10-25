@@ -23,8 +23,13 @@ class Experiment:
     name: str
     settings: dict  # how its Searcher is built; recorded in each run
     searcher: Searcher
-    # Filter each Question's search to its own Document: an upper bound, since no user knows it
-    oracle_filter: bool = False
+
+    @property
+    def oracle_filter(self) -> bool:
+        """Whether each Question's search is filtered to its Document's company, Doc type and
+        Fiscal year, which no user knows: an upper bound. Read from the settings, so a run's
+        record always says."""
+        return self.settings.get("filter") == ORACLE_FILTER
 
 
 DENSE = "dense, exact cosine"
@@ -71,6 +76,4 @@ def build_experiment(name: str, conn: psycopg.Connection, embedder: Embedder) ->
     if name not in EXPERIMENTS:
         raise ValueError(f"unknown experiment {name!r}; known: {', '.join(EXPERIMENTS)}")
     settings, build = EXPERIMENTS[name]
-    # Read from the settings a run records, so the record always says whether it was filtered
-    oracle_filter = settings.get("filter") == ORACLE_FILTER
-    return Experiment(name, settings, build(conn, embedder), oracle_filter)
+    return Experiment(name, settings, build(conn, embedder))

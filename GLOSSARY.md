@@ -36,7 +36,7 @@ Anything that returns the top-k Chunks for a query: dense (the Retriever, by emb
 _Avoid_: retriever (that's the dense one), engine
 
 **Filter**:
-Which Documents a search may return Chunks from, by company, Doc type and Fiscal year (each optional). An oracle filter is a Question's own Document's, which only an eval knows.
+Which Documents a search may return Chunks from, by company, Doc type and Fiscal year (each optional). An oracle filter is a Question's Document's company, Doc type and Fiscal year, which only an eval knows (two 8-Ks can share them).
 _Avoid_: where clause, scope
 
 ### Evaluation

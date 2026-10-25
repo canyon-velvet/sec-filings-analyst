@@ -34,7 +34,8 @@ _COLUMNS = "d.name, d.company, d.doc_type, d.fiscal_year, c.page, c.position, c.
 
 
 class Retriever:
-    """Dense-only, exact (no approximate index) cosine search over every stored Chunk.
+    """Dense-only, exact (no approximate index) cosine search over every stored Chunk
+    (or every one the filter matches).
 
     Needs an autocommit connection, so searches never hold a transaction open."""
 
@@ -96,7 +97,8 @@ RRF_K = 60  # the usual constant: the higher it is, the less a top rank outweigh
 class HybridSearcher:
     """Fuses other Searchers' rankings with Reciprocal Rank Fusion: each is asked for
     max(k, candidates) Chunks, and a Chunk scores the sum of 1/(RRF_K + rank) over the lists it
-    appears in. Ties keep the order Chunks were first seen in, earlier Searchers first."""
+    appears in. Ties keep the order Chunks were first seen in, earlier Searchers first. Each is
+    given the filter."""
 
     def __init__(self, searchers: list[Searcher], candidates: int):
         self._searchers = searchers
@@ -121,7 +123,8 @@ class Scorer(Protocol):
 
 class RerankingSearcher:
     """Re-orders another Searcher's Chunks by a Scorer (a cross-encoder reads the query and each
-    Chunk's text together): asks it for max(k, candidates) Chunks and keeps the top k."""
+    Chunk's text together): asks it for max(k, candidates) Chunks, with the filter, and keeps the
+    top k."""
 
     def __init__(self, searcher: Searcher, scorer: Scorer, candidates: int):
         self._searcher = searcher
