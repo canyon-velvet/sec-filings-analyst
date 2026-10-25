@@ -62,11 +62,13 @@ def test_a_filter_keeps_only_the_chunks_of_matching_documents(db, searcher):
         Document(name="ACME_2022_10K", company="ACME", doc_type="10-K", fiscal_year=2022),
         Document(name="ACME_2023_Q3_10Q", company="ACME", doc_type="10-Q", fiscal_year=2023),
     ]
-    documents = {document: FIXTURE for document in [ACME, *others]}
+    # Same text in all four, and ACME's Chunks are stored last, so they lose every tie: k=2 only
+    # reaches them if the filter applies before the top-k cut
+    documents = {document: FIXTURE for document in [*others, ACME]}
     ingest(documents, WordHashEmbedder(), db, ScriptedConfirm(yes=True))
     acme_10k_2023 = Filter(company="ACME", doc_type="10-K", fiscal_year=2023)
 
-    results = searcher(db).search("revenue and long-term debt", k=10, filter=acme_10k_2023)
+    results = searcher(db).search("revenue and long-term debt", k=2, filter=acme_10k_2023)
 
     assert sorted((r.chunk.document, r.chunk.page) for r in results) == [(ACME, 1), (ACME, 3)]
 

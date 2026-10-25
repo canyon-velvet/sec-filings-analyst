@@ -12,7 +12,7 @@ def test_an_unknown_experiment_is_refused_with_the_known_names():
         build_experiment("dense-basline", conn=None, embedder=WordHashEmbedder())
 
 
-def test_only_the_oracle_experiment_filters_to_each_question_s_document():
+def test_only_the_oracle_experiment_filters_by_each_question_s_company_doc_type_and_year():
     def build(name):
         return build_experiment(name, conn=None, embedder=WordHashEmbedder())  # nothing searched
 
