@@ -8,10 +8,13 @@ Doc type and Fiscal year, which no user knows: an upper bound, not a result.
 | Experiment | Split | Hit@1 | Hit@5 | Hit@10 | Recall@10 | MRR@10 | n |
 |---|---|---|---|---|---|---|---|
 | dense-baseline | financebench_v1/dev | 0.12 | 0.40 | 0.50 | 0.47 | 0.24 | 50 |
+| dense-headers | financebench_v1/dev | 0.14 | 0.54 | 0.64 | 0.60 | 0.31 | 50 |
 | dense-oracle-filter | financebench_v1/dev | 0.22 | 0.60 | 0.76 | 0.72 | 0.38 | 50 |
 | dense-rerank-100 | financebench_v1/dev | 0.12 | 0.30 | 0.42 | 0.39 | 0.20 | 50 |
 | dense-rerank-50 | financebench_v1/dev | 0.14 | 0.32 | 0.44 | 0.41 | 0.21 | 50 |
+| hybrid-rrf-headers | financebench_v1/dev | 0.24 | 0.46 | 0.60 | 0.54 | 0.32 | 50 |
 | hybrid-rrf | financebench_v1/dev | 0.12 | 0.26 | 0.42 | 0.40 | 0.18 | 50 |
+| keyword-bm25-headers | financebench_v1/dev | 0.12 | 0.20 | 0.26 | 0.25 | 0.15 | 50 |
 | keyword-bm25 | financebench_v1/dev | 0.10 | 0.10 | 0.20 | 0.19 | 0.11 | 50 |
 
 ## Hit@5 by question type
@@ -19,8 +22,11 @@ Doc type and Fiscal year, which no user knows: an upper bound, not a result.
 | Experiment | Split | domain-relevant | metrics-generated | novel-generated |
 |---|---|---|---|---|
 | dense-baseline | financebench_v1/dev | 0.24 | 0.47 | 0.50 |
+| dense-headers | financebench_v1/dev | 0.59 | 0.53 | 0.50 |
 | dense-oracle-filter | financebench_v1/dev | 0.47 | 0.71 | 0.62 |
 | dense-rerank-100 | financebench_v1/dev | 0.24 | 0.35 | 0.31 |
 | dense-rerank-50 | financebench_v1/dev | 0.24 | 0.41 | 0.31 |
+| hybrid-rrf-headers | financebench_v1/dev | 0.29 | 0.59 | 0.50 |
 | hybrid-rrf | financebench_v1/dev | 0.18 | 0.24 | 0.38 |
+| keyword-bm25-headers | financebench_v1/dev | 0.24 | 0.06 | 0.31 |
 | keyword-bm25 | financebench_v1/dev | 0.12 | 0.00 | 0.19 |
