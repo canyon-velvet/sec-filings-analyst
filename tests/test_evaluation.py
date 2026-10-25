@@ -97,6 +97,20 @@ def test_an_oracle_experiment_filters_by_the_question_s_company_doc_type_and_yea
     assert plain.filters == [None, None, None]
 
 
+def test_an_experiment_runs_only_on_chunks_with_the_header_format_it_expects(tmp_path):
+    headered = PROVENANCE | {"corpus": PROVENANCE["corpus"] | {"header_format": "{company}"}}
+    retriever = FakeRetriever(HITS)
+
+    # dense-baseline expects bare Chunks: run on headered ones, its name would hide that
+    with pytest.raises(ValueError, match="dense-baseline expects Chunks without headers"):
+        run_eval(baseline(retriever), "dev", QUESTIONS, headered, tmp_path)
+    assert retriever.ks == []  # refused before any search
+
+    headers = Experiment("dense-headers", {"header_format": "{company}"}, retriever)
+    run_eval(headers, "dev", QUESTIONS, headered, tmp_path)
+    assert retriever.ks == [50, 50, 50]
+
+
 RESULTS_WITH_BASELINE = """\
 # Retrieval results
 

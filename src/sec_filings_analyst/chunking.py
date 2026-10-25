@@ -12,7 +12,8 @@ from sec_filings_analyst.documents import Chunk, Document
 CHUNK_TOKENS = 512
 OVERLAP_TOKENS = 64
 # Each Chunk's Contextual header: embedded and keyword-indexed with it, on top of its 512
-# tokens, but not stored in its text. "FY2018" as most Questions write it, so keyword matches
+# tokens, but not stored in its text. "FY2018" is how most Questions write the year, and keyword
+# search only matches it written the same way
 HEADER_FORMAT = "{company} {doc_type} FY{fiscal_year}, page {page}"
 
 
@@ -46,6 +47,12 @@ def contextual_header(chunk: Chunk) -> str:
         fiscal_year=document.fiscal_year,
         page=chunk.page,
     )
+
+
+def embedded_text(chunk: Chunk) -> str:
+    """What gets embedded (and paid for): the header line, then the Chunk's text. The schema's
+    keyword index joins them the same way."""
+    return f"{contextual_header(chunk)}\n{chunk.text}"
 
 
 def parse_pages(pdf: Path) -> list[str]:

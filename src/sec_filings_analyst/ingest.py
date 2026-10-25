@@ -13,6 +13,7 @@ from sec_filings_analyst.chunking import (
     Cl100kTokenizer,
     chunk_pages,
     contextual_header,
+    embedded_text,
     parse_pages,
 )
 from sec_filings_analyst.documents import Chunk, Document
@@ -50,8 +51,8 @@ def ingest(
         raise ValueError("ingest needs an autocommit connection, or nothing may be committed")
     try:
         stored = {name for (name,) in conn.execute("SELECT name FROM documents")}
-        made_with = conn.execute(f"SELECT {_SETTINGS} FROM corpus_settings").fetchone()
         # None until the first Document is stored
+        made_with = conn.execute(f"SELECT {_SETTINGS} FROM corpus_settings").fetchone()
     except _OUTDATED_SCHEMA:
         raise RuntimeError("schema missing or out of date: run `make db-reset`") from None
     settings = (embedder.model, CHUNK_TOKENS, OVERLAP_TOKENS, HEADER_FORMAT)
@@ -74,9 +75,8 @@ def ingest(
             )
         pending[document] = (len(pages), chunks)
     all_chunks = [chunk for _, chunks in pending.values() for chunk in chunks]
-    # Each Chunk's header line is embedded, and paid for, on top of its Page text
-    headers = sum(len(tokenizer.encode(f"{contextual_header(c)}\n")) for c in all_chunks)
-    tokens = sum(chunk.token_count for chunk in all_chunks) + headers
+    # Exactly what is embedded: the header line is paid for on top of the Page text
+    tokens = sum(len(tokenizer.encode(embedded_text(chunk))) for chunk in all_chunks)
     cost = tokens / 1_000_000 * PRICE_PER_MILLION_TOKENS
     summary = (
         f"Documents: {len(pending)}, Chunks: {len(all_chunks):,}, tokens: {tokens:,},"
@@ -86,7 +86,7 @@ def ingest(
         return
     for document, (page_count, chunks) in pending.items():
         print(f"Embedding {document.name} ({len(chunks)} Chunks)")
-        embeddings = embedder.embed([f"{contextual_header(c)}\n{c.text}" for c in chunks])
+        embeddings = embedder.embed([embedded_text(c) for c in chunks])
         _store(document, page_count, chunks, embeddings, embedder.model, conn)
 
 
@@ -138,8 +138,15 @@ def _store(
             " (document_id, page, position, header, text, token_count, embedding)"
             " VALUES (%s, %s, %s, %s, %s, %s, %s)",
             [
-                [document_id, c.page, c.position, contextual_header(c), c.text, c.token_count]
-                + [to_pgvector(embedding)]
+                (
+                    document_id,
+                    c.page,
+                    c.position,
+                    contextual_header(c),
+                    c.text,
+                    c.token_count,
+                    to_pgvector(embedding),
+                )
                 for c, embedding in zip(chunks, embeddings, strict=True)
             ],
         )

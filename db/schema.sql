@@ -33,7 +33,8 @@ CREATE TABLE chunks (
     text text NOT NULL,         -- the Page's own text, without the header
     token_count int NOT NULL,
     embedding vector(1536) NOT NULL,  -- text-embedding-3-small
-    -- Lexemes for keyword search (stemmed, without stopwords); queries use the same config
+    -- Lexemes for keyword search (stemmed, without stopwords); queries use the same config.
+    -- Header and text joined like chunking.embedded_text, so both searches see the same words
     tsv tsvector GENERATED ALWAYS AS (to_tsvector('english', header || E'\n' || text)) STORED,
     UNIQUE (document_id, page, position)
 );
