@@ -30,7 +30,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - [x] Named Experiments; runs record commit, corpus counts, Questions under 10 Pages (#27)
 - [x] Keyword search + hybrid RRF: dev Hit@5 0.10 (BM25), 0.26 (hybrid) vs dense 0.40 (#28, #29)
 - [x] Reranker: dev Hit@5 0.32 (50 candidates), 0.30 (100) vs dense 0.40 (#30)
-- [ ] Metadata filters + contextual headers (#31, #32)
+- [ ] Metadata filters + contextual headers (#31 done: dev Hit@5 0.60 with oracle filters, an upper bound; #32)
 - [ ] Cited Answers + answer evals (#33–#36)
 - [ ] Judge validation + test-Split report (#37, #38)
 ### Week 3: agent tools (search, calculate) + loop · follow-ups · /chat SSE · chat UI (citations, agent-steps panel) · agent evals
@@ -68,13 +68,13 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-22 · Keyword search: BM25 (k1 1.2, b 0.75) in Python over Postgres 'english' lexemes, any shared term · Postgres `ts_rank_cd` has no IDF: dev Hit@5 0.02, subsidiary lists repeating "company" ranked first
 - 2026-10-23 · Hybrid = RRF (k 60) over max(k, 100) candidates per Searcher; ties keep the earlier (dense) list's order · on dev it loses to dense (Hit@5 0.26 vs 0.40): a Chunk both lists rank in their top ~60 beats a dense-only rank 1, so BM25's wrong Pages win; #30 reranks dense
 - 2026-10-23 · Reranker: local cross-encoder ms-marco-MiniLM-L6-v2 (Apache-2.0, pinned) on ONNX Runtime, CPU; libraries in a `rerank` group CI skips · torch has no Intel-Mac wheels; see docs/adr/0001. Both rerank runs lose to plain dense on dev, so `dense-baseline` stays the default Searcher
+- 2026-10-24 · Filter (company, Doc type, Fiscal year; each optional) applied before the top-k cut: dense in its SQL, keyword ranks only the Chunks SQL matches; hybrid and reranking pass it on · cutting first would leave few Chunks. Oracle filters lift dev Hit@5 to 0.60 (dense 0.40): half of dense's top-5 Pages are other Documents', so the week-3 agent should filter
 
 ## Open questions
 - None
 
 ## Progress log
-- 2026-10-14 · Repo bootstrapped
-- 2026-10-14 · README (problem + planned approach) added
+- 2026-10-14 · Repo bootstrapped; README (problem + planned approach)
 - 2026-10-15 · Scope widened to any company via EDGAR; week-1 spec published as issue #2
 - 2026-10-15 · uv skeleton, CI (lint + unit tests), ruff lint hook (#4, part 1; push gate next)
 - 2026-10-15 · Push gate hook (no main, reviewed HEAD, no merged-PR branches); `env.example` rename (#4)
@@ -82,8 +82,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-15 · Tracer bullet: fixture PDF → pypdfium2 Pages → fake Embedder → Postgres → `Retriever.search`; GLOSSARY.md (#6)
 - 2026-10-16 · Page-bounded chunking, 512 tokens with 64 overlap (cl100k_base); text-less PDFs refused (#7)
 - 2026-10-16 · Retrieval scoring: `score()` → Hit@1/5/10, Recall@10, MRR@10 per Question, per type, overall (#8)
-- 2026-10-16 · `make data`: FinanceBench Questions (Doc types normalized, e.g. 10k → 10-K) + 84 PDFs, pinned (#9, part 1)
-- 2026-10-16 · `make split`: `eval/splits/financebench_v1.json`, 50 dev (17/17/16 by type) / 100 test, seed 2026 (#9)
+- 2026-10-16 · `make data`: FinanceBench Questions (Doc types normalized, e.g. 10k → 10-K) + 84 PDFs, pinned; `make split`: `eval/splits/financebench_v1.json`, 50 dev (17/17/16 by type) / 100 test, seed 2026 (#9)
 - 2026-10-19 · Evidence pages aligned to 1-based Pages; local check on 20 sampled Questions vs FinanceBench's full-page text (#10)
 - 2026-10-19 · `OpenAIEmbedder` (text-embedding-3-small, batches of 256, injected client; fake client for tests) (#11, part 1)
 - 2026-10-19 · `make ingest`: cost prompt before any API call, resumable; 84 Documents, 25,854 Chunks, 10.5M tokens (≈ $0.21) stored; Doc type CHECK (#11)
@@ -94,6 +93,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-22 · `keyword-bm25` on dev: Hit@5 0.10 · MRR@10 0.11 (dense 0.40 · 0.24); right company, wrong year or Page; only 2 Questions in the top 10 by keyword but not dense (#28)
 - 2026-10-23 · `hybrid-rrf` on dev: Hit@5 0.26 · MRR@10 0.18; 4 Questions gained, 11 lost from dense's top 5; evidence in the 50 Chunks for 34 Questions (dense 39, re-run on the same corpus) (#29)
 - 2026-10-23 · `dense-rerank-50` / `-100` on dev: Hit@5 0.32 / 0.30 · MRR@10 0.21 / 0.20, ~10 / 15 s per Question; 5 / 4 gained, 9 / 9 lost vs dense; only ~1% of text cut at 512 tokens (10% sample of Chunks) (#30)
+- 2026-10-24 · `dense-oracle-filter` on dev, an upper bound: Hit@5 0.60 · MRR@10 0.38 (dense 0.40 · 0.24); 10 Questions gained, 0 lost; 123 of dense's 250 top-5 Pages are from other Documents (#31)
 
 ## How to resume
 1. Read this file, `git log --oneline -20` and the open `ready-for-agent` issues. 2. Take the first unchecked task.
