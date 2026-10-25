@@ -23,6 +23,8 @@ class Experiment:
     name: str
     settings: dict  # how its Searcher is built; recorded in each run
     searcher: Searcher
+    # Filter each Question's search to its own Document: an upper bound, since no user knows it
+    oracle_filter: bool = False
 
 
 DENSE = "dense, exact cosine"
@@ -30,6 +32,7 @@ KEYWORD = f"keyword, BM25 (k1 {K1}, b {B}) over Postgres 'english' lexemes, any 
 # Per Searcher, or k if larger: at the eval's k (50) each list reaches past k, so a Chunk just past
 # one list's cut can still count
 HYBRID_CANDIDATES = 100
+ORACLE_FILTER = "oracle: the Question's own company, Doc type and Fiscal year"
 RERANKER = f"cross-encoder {cross_encoder.MODEL}@{cross_encoder.REVISION[:7]}, ONNX on CPU"
 
 
@@ -59,6 +62,7 @@ EXPERIMENTS: dict[str, tuple[dict, Builder]] = {
     # Candidates tuned on dev only: reranking 50 re-orders dense's Chunks, 100 also widens the pool
     "dense-rerank-50": _dense_reranked(50),
     "dense-rerank-100": _dense_reranked(100),
+    "dense-oracle-filter": ({"retriever": DENSE, "filter": ORACLE_FILTER}, Retriever),
 }
 
 
@@ -67,4 +71,6 @@ def build_experiment(name: str, conn: psycopg.Connection, embedder: Embedder) ->
     if name not in EXPERIMENTS:
         raise ValueError(f"unknown experiment {name!r}; known: {', '.join(EXPERIMENTS)}")
     settings, build = EXPERIMENTS[name]
-    return Experiment(name, settings, build(conn, embedder))
+    # Read from the settings a run records, so the record always says whether it was filtered
+    oracle_filter = settings.get("filter") == ORACLE_FILTER
+    return Experiment(name, settings, build(conn, embedder), oracle_filter)

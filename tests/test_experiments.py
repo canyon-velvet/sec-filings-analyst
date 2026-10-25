@@ -12,6 +12,14 @@ def test_an_unknown_experiment_is_refused_with_the_known_names():
         build_experiment("dense-basline", conn=None, embedder=WordHashEmbedder())
 
 
+def test_only_the_oracle_experiment_filters_to_each_question_s_document():
+    def build(name):
+        return build_experiment(name, conn=None, embedder=WordHashEmbedder())  # nothing searched
+
+    assert build("dense-oracle-filter").oracle_filter
+    assert not build("dense-baseline").oracle_filter
+
+
 def test_the_experiments_load_without_the_cross_encoder_s_libraries():
     # CI doesn't install the `rerank` group: only building a rerank Experiment may import it
     heavy = "{'onnxruntime', 'tokenizers', 'huggingface_hub', 'numpy'}"

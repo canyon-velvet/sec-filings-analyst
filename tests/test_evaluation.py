@@ -7,6 +7,7 @@ from fakes.retriever import FakeRetriever
 from sec_filings_analyst.evaluation import run_eval
 from sec_filings_analyst.experiments import Experiment
 from sec_filings_analyst.financebench import load_questions
+from sec_filings_analyst.retriever import Filter
 
 # 00001 3M Evidence pages {60, 61} · 00002 3M {1} · 00003 AMCOR {3} (1-based, see #10)
 QUESTIONS = load_questions(Path(__file__).parent / "fixtures" / "financebench.jsonl")
@@ -82,6 +83,19 @@ def test_each_run_adds_a_row_and_a_reused_experiment_and_split_is_refused(tmp_pa
     assert "| dense-baseline | test | 1.00 | 1.00 | 1.00 | 0.50 | 1.00 | 1 |" in table
     # Its one Question is metrics-generated
     assert "| dense-baseline | test | – | 1.00 | – |" in table
+
+
+def test_an_oracle_experiment_filters_each_search_to_the_question_s_own_document(tmp_path):
+    oracle, plain = FakeRetriever(HITS), FakeRetriever(HITS)
+
+    run_eval(
+        Experiment("oracle", {}, oracle, oracle_filter=True), "dev", QUESTIONS, PROVENANCE, tmp_path
+    )
+    run_eval(baseline(plain), "dev", QUESTIONS, PROVENANCE, tmp_path)
+
+    mmm_2018 = Filter(company="3M", doc_type="10-K", fiscal_year=2018)
+    assert oracle.filters == [mmm_2018, mmm_2018, Filter("AMCOR", "8-K", 2022)]
+    assert plain.filters == [None, None, None]
 
 
 RESULTS_WITH_BASELINE = """\

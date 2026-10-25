@@ -20,9 +20,11 @@ class Bm25:
         average = sum(lengths.values()) / self._n if self._n else 0
         self._norm = {chunk: K1 * (1 - B + B * n / average) for chunk, n in lengths.items()}
 
-    def top(self, terms: list[str], k: int) -> list[tuple[int, float]]:
+    def top(
+        self, terms: list[str], k: int, among: set[int] | None = None
+    ) -> list[tuple[int, float]]:
         """The k Chunks sharing any term, highest score first (ties: lower id first); repeated
-        terms count once."""
+        terms count once. among: only these Chunk ids may be returned (scores are unchanged)."""
         scores: dict[int, float] = {}
         for term in set(terms):
             counts = self._postings.get(term, {})
@@ -30,4 +32,6 @@ class Bm25:
             for chunk, tf in counts.items():
                 score = idf * tf * (K1 + 1) / (tf + self._norm[chunk])
                 scores[chunk] = scores.get(chunk, 0.0) + score
+        if among is not None:
+            scores = {chunk: score for chunk, score in scores.items() if chunk in among}
         return sorted(scores.items(), key=lambda item: (-item[1], item[0]))[:k]

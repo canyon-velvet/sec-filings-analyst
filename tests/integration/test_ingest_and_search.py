@@ -8,7 +8,7 @@ from fakes.openai_client import FakeOpenAIClient
 from sec_filings_analyst.documents import Document
 from sec_filings_analyst.embedder import OpenAIEmbedder
 from sec_filings_analyst.ingest import describe_corpus, ingest
-from sec_filings_analyst.retriever import KeywordSearcher, Retriever
+from sec_filings_analyst.retriever import Filter, KeywordSearcher, Retriever
 
 pytestmark = pytest.mark.integration
 
@@ -46,6 +46,29 @@ def test_keyword_search_finds_a_page_by_any_of_the_question_s_terms(db):
     results = KeywordSearcher(db).search(question, k=5)
 
     assert [(r.chunk.document, r.chunk.page) for r in results] == [(ACME, 3)]  # Page 1: no term
+
+
+SEARCHERS = {
+    "dense": lambda db: Retriever(db, WordHashEmbedder()),
+    "keyword": KeywordSearcher,
+}
+
+
+@pytest.mark.parametrize("searcher", SEARCHERS.values(), ids=SEARCHERS.keys())
+def test_a_filter_keeps_only_the_chunks_of_matching_documents(db, searcher):
+    # Each other Document differs from ACME's 2023 10-K in one field
+    others = [
+        Document(name="BETA_2023_10K", company="Beta", doc_type="10-K", fiscal_year=2023),
+        Document(name="ACME_2022_10K", company="ACME", doc_type="10-K", fiscal_year=2022),
+        Document(name="ACME_2023_Q3_10Q", company="ACME", doc_type="10-Q", fiscal_year=2023),
+    ]
+    documents = {document: FIXTURE for document in [ACME, *others]}
+    ingest(documents, WordHashEmbedder(), db, ScriptedConfirm(yes=True))
+    acme_10k_2023 = Filter(company="ACME", doc_type="10-K", fiscal_year=2023)
+
+    results = searcher(db).search("revenue and long-term debt", k=10, filter=acme_10k_2023)
+
+    assert sorted((r.chunk.document, r.chunk.page) for r in results) == [(ACME, 1), (ACME, 3)]
 
 
 def test_the_corpus_is_described_by_its_counts_and_how_its_chunks_were_made(db):

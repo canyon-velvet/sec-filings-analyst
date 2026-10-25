@@ -9,6 +9,7 @@ from pathlib import Path
 
 from sec_filings_analyst.experiments import Experiment
 from sec_filings_analyst.financebench import Question
+from sec_filings_analyst.retriever import Filter
 from sec_filings_analyst.scoring import Metrics, Page, Retrieval, score
 
 FETCH_K = 50  # Chunks per Question: several can share a Page, and scoring needs 10 unique Pages
@@ -30,7 +31,11 @@ def run_eval(
         raise FileExistsError(f"{path} exists; name the new run differently")
     retrievals = {}
     for question in questions:
-        results = experiment.searcher.search(question.text, k=FETCH_K)
+        filter = None
+        if experiment.oracle_filter:
+            d = question.document
+            filter = Filter(company=d.company, doc_type=d.doc_type, fiscal_year=d.fiscal_year)
+        results = experiment.searcher.search(question.text, k=FETCH_K, filter=filter)
         ranked = [Page(r.chunk.document.name, r.chunk.page) for r in results]
         evidence = {Page(question.document.name, n) for n in question.evidence_pages}
         retrievals[question.id] = Retrieval(question.question_type, ranked, evidence)

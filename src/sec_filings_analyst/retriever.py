@@ -1,6 +1,6 @@
 """Searchers: the top-k Chunks for a query. Evaluation and the agent both search through them."""
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Protocol
 
 import psycopg
@@ -16,8 +16,18 @@ class SearchResult:
     score: float  # higher is closer; the scale depends on the Searcher (cosine, BM25, RRF, Scorer)
 
 
+@dataclass(frozen=True)
+class Filter:
+    """Which Documents a search may return Chunks from: each field set must match; None matches
+    any value."""
+
+    company: str | None = None
+    doc_type: str | None = None
+    fiscal_year: int | None = None
+
+
 class Searcher(Protocol):
-    def search(self, query: str, k: int) -> list[SearchResult]: ...
+    def search(self, query: str, k: int, filter: Filter | None = None) -> list[SearchResult]: ...
 
 
 _COLUMNS = "d.name, d.company, d.doc_type, d.fiscal_year, c.page, c.position, c.text, c.token_count"
@@ -32,14 +42,15 @@ class Retriever:
         self._conn = conn
         self._embedder = embedder
 
-    def search(self, query: str, k: int) -> list[SearchResult]:
+    def search(self, query: str, k: int, filter: Filter | None = None) -> list[SearchResult]:
         """The k Chunks nearest the query, nearest first."""
         (embedding,) = self._embedder.embed([query])
+        where, params = _where(filter)
         rows = self._conn.execute(
             f"SELECT {_COLUMNS}, 1 - (c.embedding <=> %(q)s::vector) AS score"
-            " FROM chunks c JOIN documents d ON d.id = c.document_id"
+            f" FROM chunks c JOIN documents d ON d.id = c.document_id{where}"
             " ORDER BY c.embedding <=> %(q)s::vector, c.id LIMIT %(k)s",
-            {"q": to_pgvector(embedding), "k": k},
+            {"q": to_pgvector(embedding), "k": k} | params,
         ).fetchall()
         return _results(rows)
 
@@ -57,12 +68,19 @@ class KeywordSearcher:
         ).fetchall()
         self._index = Bm25({lexeme: dict(zip(ids, tfs, strict=True)) for lexeme, ids, tfs in rows})
 
-    def search(self, query: str, k: int) -> list[SearchResult]:
+    def search(self, query: str, k: int, filter: Filter | None = None) -> list[SearchResult]:
         """The k Chunks that best match the query's terms, best first; none share a term → []."""
         (terms,) = self._conn.execute(
             "SELECT array(SELECT lexeme FROM unnest(to_tsvector('english', %s)))", [query]
         ).fetchone()
-        top = self._index.top(terms, k)
+        where, params = _where(filter)
+        among = None
+        if where:  # the index holds every Chunk, so the filter picks which ones it may return
+            rows = self._conn.execute(
+                f"SELECT c.id FROM chunks c JOIN documents d ON d.id = c.document_id{where}", params
+            ).fetchall()
+            among = {chunk for (chunk,) in rows}
+        top = self._index.top(terms, k, among)
         rows = self._conn.execute(
             f"SELECT c.id, {_COLUMNS} FROM chunks c JOIN documents d ON d.id = c.document_id"
             " WHERE c.id = ANY(%s)",
@@ -84,12 +102,12 @@ class HybridSearcher:
         self._searchers = searchers
         self._candidates = candidates
 
-    def search(self, query: str, k: int) -> list[SearchResult]:
+    def search(self, query: str, k: int, filter: Filter | None = None) -> list[SearchResult]:
         """The k Chunks with the highest fused score, highest first."""
         depth = max(k, self._candidates)
         scores: dict[Chunk, float] = {}
         for searcher in self._searchers:
-            for rank, result in enumerate(searcher.search(query, depth), start=1):
+            for rank, result in enumerate(searcher.search(query, depth, filter), start=1):
                 scores[result.chunk] = scores.get(result.chunk, 0.0) + 1 / (RRF_K + rank)
         top = sorted(scores.items(), key=lambda item: -item[1])[:k]
         return [SearchResult(chunk, score) for chunk, score in top]
@@ -110,12 +128,22 @@ class RerankingSearcher:
         self._scorer = scorer
         self._candidates = candidates
 
-    def search(self, query: str, k: int) -> list[SearchResult]:
+    def search(self, query: str, k: int, filter: Filter | None = None) -> list[SearchResult]:
         """The k best-scored Chunks, best first."""
-        chunks = [r.chunk for r in self._searcher.search(query, max(k, self._candidates))]
+        inner = self._searcher.search(query, max(k, self._candidates), filter)
+        chunks = [r.chunk for r in inner]
         scores = self._scorer.score([(query, chunk.text) for chunk in chunks])
         ranked = sorted(zip(chunks, scores, strict=True), key=lambda item: -item[1])[:k]
         return [SearchResult(chunk, score) for chunk, score in ranked]
+
+
+def _where(filter: Filter | None) -> tuple[str, dict]:
+    """A WHERE clause matching the filter's set fields (named like the documents columns), or "",
+    and its parameters."""
+    fields = asdict(filter or Filter())
+    params = {name: value for name, value in fields.items() if value is not None}
+    clause = " AND ".join(f"d.{name} = %({name})s" for name in params)
+    return (f" WHERE {clause}" if clause else ""), params
 
 
 def _results(rows: list[tuple]) -> list[SearchResult]:
