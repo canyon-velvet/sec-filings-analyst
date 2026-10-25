@@ -27,6 +27,10 @@ A span of text from exactly one Page, at most 512 tokens, stored with its embedd
 A Searcher returns Chunks ranked by how well they match the query, each with its score.
 _Avoid_: passage, snippet, segment
 
+**Contextual header**:
+One line made from a Chunk's Document and Page (`3M 10-K FY2018, page 60`), embedded and keyword-indexed with the Chunk but not part of its stored text.
+_Avoid_: prefix, context, title
+
 **Corpus settings**:
 How every stored Chunk was made: embedding model, chunk tokens, overlap. Stored once in the database; a corpus never mixes two.
 _Avoid_: config, ingest settings
