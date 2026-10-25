@@ -7,6 +7,7 @@ import psycopg
 
 from sec_filings_analyst import cross_encoder
 from sec_filings_analyst.bm25 import K1, B
+from sec_filings_analyst.chunking import HEADER_FORMAT
 from sec_filings_analyst.embedder import Embedder
 from sec_filings_analyst.retriever import (
     RRF_K,
@@ -68,6 +69,20 @@ EXPERIMENTS: dict[str, tuple[dict, Builder]] = {
     "dense-rerank-50": _dense_reranked(50),
     "dense-rerank-100": _dense_reranked(100),
     "dense-oracle-filter": ({"retriever": DENSE, "filter": ORACLE_FILTER}, Retriever),
+}
+
+
+def _with_headers(name: str) -> tuple[dict, Builder]:
+    """The same stack, expecting Chunks with Contextual headers: run_eval refuses any other
+    corpus, as it refuses headered Chunks to the stacks without header_format."""
+    settings, build = EXPERIMENTS[name]
+    return settings | {"header_format": HEADER_FORMAT}, build
+
+
+EXPERIMENTS |= {
+    "dense-headers": _with_headers("dense-baseline"),
+    "keyword-bm25-headers": _with_headers("keyword-bm25"),
+    "hybrid-rrf-headers": _with_headers("hybrid-rrf"),
 }
 
 

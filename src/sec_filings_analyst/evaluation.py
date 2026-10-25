@@ -22,13 +22,19 @@ def run_eval(
     """Saves eval_dir/runs/<split>/<experiment name>.json, with provenance (commit, corpus)
     recorded as given, and regenerates eval_dir/RESULTS.md from every saved run. Raises
     FileExistsError, before any search, if the experiment was already run on this Split, and
-    ValueError for an experiment name that isn't a plain file name."""
+    ValueError for an experiment name that isn't a plain file name or a corpus whose Contextual
+    headers aren't the ones the experiment expects."""
     name = experiment.name
     if Path(name).name != name:
         raise ValueError(f"experiment {name!r} must be a plain name, without folders")
     path = eval_dir / "runs" / split / f"{name}.json"
     if path.exists():
         raise FileExistsError(f"{path} exists; name the new run differently")
+    expected = experiment.settings.get("header_format")  # None: bare Chunks
+    corpus = provenance["corpus"].get("header_format")
+    if corpus != expected:
+        expects, has = (f"headers {f!r}" if f else "no headers" for f in (expected, corpus))
+        raise ValueError(f"{name} expects Chunks with {expects}, but the corpus has {has}")
     retrievals = {}
     for question in questions:
         filter = None
@@ -138,7 +144,7 @@ if __name__ == "__main__":
     from sec_filings_analyst.financebench import load_questions
     from sec_filings_analyst.ingest import describe_corpus
 
-    split_name, name = sys.argv[1:]  # e.g. dev dense-baseline
+    split_name, name = sys.argv[1:]  # e.g. dev dense-headers
     split_file = Path("eval/splits/financebench_v1.json")
     ids = set(json.loads(split_file.read_text())[split_name])
     all_questions = load_questions(Path("data/financebench/financebench_merged.jsonl"))

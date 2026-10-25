@@ -8,9 +8,12 @@ import psycopg
 
 from sec_filings_analyst.chunking import (
     CHUNK_TOKENS,
+    HEADER_FORMAT,
     OVERLAP_TOKENS,
     Cl100kTokenizer,
     chunk_pages,
+    contextual_header,
+    embedded_text,
     parse_pages,
 )
 from sec_filings_analyst.documents import Chunk, Document
@@ -21,6 +24,10 @@ from sec_filings_analyst.embedder import (
     to_pgvector,
 )
 from sec_filings_analyst.financebench import load_questions
+
+_SETTINGS = "embedding_model, chunk_tokens, overlap_tokens, header_format"
+# A table or a column the schema doesn't have yet (e.g. from before Contextual headers)
+_OUTDATED_SCHEMA = (psycopg.errors.UndefinedTable, psycopg.errors.UndefinedColumn)
 
 
 def ingest(
@@ -37,19 +44,18 @@ def ingest(
     Needs an autocommit connection: otherwise an open transaction would turn this into an
     uncommitted savepoint. Raises RuntimeError, before parsing anything, if the schema is
     missing (it never creates it: db/schema.sql drops every table first) or the stored Chunks
-    were made with other settings (embedding model, chunk tokens, overlap), so one corpus never
-    mixes two kinds of Chunks. Raises ValueError for a PDF without text (e.g. a scan), so a
-    missing Document can't silently lower retrieval scores."""
+    were made with other settings (embedding model, chunk tokens, overlap, header format), so
+    one corpus never mixes two kinds of Chunks. Raises ValueError for a PDF without text (e.g. a
+    scan), so a missing Document can't silently lower retrieval scores."""
     if not conn.autocommit:
         raise ValueError("ingest needs an autocommit connection, or nothing may be committed")
     try:
         stored = {name for (name,) in conn.execute("SELECT name FROM documents")}
-        made_with = conn.execute(
-            "SELECT embedding_model, chunk_tokens, overlap_tokens FROM corpus_settings"
-        ).fetchone()  # None until the first Document is stored
-    except psycopg.errors.UndefinedTable:
+        # None until the first Document is stored
+        made_with = conn.execute(f"SELECT {_SETTINGS} FROM corpus_settings").fetchone()
+    except _OUTDATED_SCHEMA:
         raise RuntimeError("schema missing or out of date: run `make db-reset`") from None
-    settings = (embedder.model, CHUNK_TOKENS, OVERLAP_TOKENS)
+    settings = (embedder.model, CHUNK_TOKENS, OVERLAP_TOKENS, HEADER_FORMAT)
     if made_with is not None and made_with != settings:
         raise RuntimeError(
             f"stored Chunks were made with {made_with}, not {settings}:"
@@ -69,7 +75,8 @@ def ingest(
             )
         pending[document] = (len(pages), chunks)
     all_chunks = [chunk for _, chunks in pending.values() for chunk in chunks]
-    tokens = sum(chunk.token_count for chunk in all_chunks)
+    # Exactly what is embedded: the header line is paid for on top of the Page text
+    tokens = sum(len(tokenizer.encode(embedded_text(chunk))) for chunk in all_chunks)
     cost = tokens / 1_000_000 * PRICE_PER_MILLION_TOKENS
     summary = (
         f"Documents: {len(pending)}, Chunks: {len(all_chunks):,}, tokens: {tokens:,},"
@@ -79,22 +86,21 @@ def ingest(
         return
     for document, (page_count, chunks) in pending.items():
         print(f"Embedding {document.name} ({len(chunks)} Chunks)")
-        embeddings = embedder.embed([c.text for c in chunks])
+        embeddings = embedder.embed([embedded_text(c) for c in chunks])
         _store(document, page_count, chunks, embeddings, embedder.model, conn)
 
 
 def describe_corpus(conn: psycopg.Connection) -> dict:
     """What is stored, for a run to record: Document and Chunk counts, and how the Chunks were
     made. Raises RuntimeError if no ingest recorded that (nothing ingested yet, or a schema
-    from before corpus settings)."""
-    query = "SELECT embedding_model, chunk_tokens, overlap_tokens FROM corpus_settings"
+    from before corpus settings or Contextual headers)."""
     try:
-        settings = conn.execute(query).fetchone()
-    except psycopg.errors.UndefinedTable:
+        settings = conn.execute(f"SELECT {_SETTINGS} FROM corpus_settings").fetchone()
+    except _OUTDATED_SCHEMA:
         settings = None
     if settings is None:
         raise RuntimeError("no corpus settings: run `make db-reset`, then `make ingest`")
-    embedding_model, chunk_tokens, overlap_tokens = settings
+    embedding_model, chunk_tokens, overlap_tokens, header_format = settings
     (documents,) = conn.execute("SELECT count(*) FROM documents").fetchone()
     (chunks,) = conn.execute("SELECT count(*) FROM chunks").fetchone()
     return {
@@ -103,6 +109,7 @@ def describe_corpus(conn: psycopg.Connection) -> dict:
         "embedding_model": embedding_model,
         "chunk_tokens": chunk_tokens,
         "overlap_tokens": overlap_tokens,
+        "header_format": header_format,
     }
 
 
@@ -117,9 +124,9 @@ def _store(
     with conn.transaction():
         # With the first Document, so corpus settings never exist without stored Chunks
         conn.execute(
-            "INSERT INTO corpus_settings (embedding_model, chunk_tokens, overlap_tokens)"
-            " VALUES (%s, %s, %s) ON CONFLICT DO NOTHING",  # later Documents keep the first row
-            [embedding_model, CHUNK_TOKENS, OVERLAP_TOKENS],
+            f"INSERT INTO corpus_settings ({_SETTINGS})"
+            " VALUES (%s, %s, %s, %s) ON CONFLICT DO NOTHING",  # later Documents keep the first row
+            [embedding_model, CHUNK_TOKENS, OVERLAP_TOKENS, HEADER_FORMAT],
         )
         (document_id,) = conn.execute(
             "INSERT INTO documents (name, company, doc_type, fiscal_year, page_count)"
@@ -127,10 +134,19 @@ def _store(
             [document.name, document.company, document.doc_type, document.fiscal_year, page_count],
         ).fetchone()
         conn.cursor().executemany(
-            "INSERT INTO chunks (document_id, page, position, text, token_count, embedding)"
-            " VALUES (%s, %s, %s, %s, %s, %s)",
+            "INSERT INTO chunks"
+            " (document_id, page, position, header, text, token_count, embedding)"
+            " VALUES (%s, %s, %s, %s, %s, %s, %s)",
             [
-                [document_id, c.page, c.position, c.text, c.token_count, to_pgvector(embedding)]
+                (
+                    document_id,
+                    c.page,
+                    c.position,
+                    contextual_header(c),
+                    c.text,
+                    c.token_count,
+                    to_pgvector(embedding),
+                )
                 for c, embedding in zip(chunks, embeddings, strict=True)
             ],
         )

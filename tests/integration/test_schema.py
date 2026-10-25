@@ -17,9 +17,9 @@ def test_exact_cosine_search_returns_chunks_nearest_first(db):
     # Cosine distance to the query (1, 0): page 3 is 0, page 5 is 1 - 1/sqrt(2), page 7 is 1.
     for page, embedding in [(7, vector(0, 1)), (3, vector(1, 0)), (5, vector(1, 1))]:
         db.execute(
-            "INSERT INTO chunks (document_id, page, position, text, token_count, embedding)"
-            " VALUES (%s, %s, 0, %s, 3, %s)",
-            [doc_id, page, f"text of page {page}", embedding],
+            "INSERT INTO chunks (document_id, page, position, header, text, token_count, embedding)"
+            " VALUES (%s, %s, 0, %s, %s, 3, %s)",
+            [doc_id, page, f"3M 10-K FY2018, page {page}", f"text of page {page}", embedding],
         )
 
     rows = db.execute(
