@@ -37,7 +37,7 @@ same problem without knowing the answer's Document.
 
 ## Consequences
 
-- Re-ingest #2 (`make db-reset` + `make ingest`, 10.8M tokens, about $0.22) replaces the corpus; earlier runs
-  stay comparable through the corpus settings they record.
+- Re-ingest #2 (`make db-reset` + `make ingest`, 10.8M tokens, about $0.22) replaces the
+  corpus; earlier runs stay comparable through the corpus settings they record.
 - The cross-encoder still reads only the stored text, so reranking doesn't see the header.
 - Changing the format means another re-ingest.
