@@ -43,6 +43,16 @@ _Avoid_: retriever (that's the dense one), engine
 Which Documents a search may return Chunks from, by company, Doc type and Fiscal year (each optional). An oracle filter is a Question's Document's company, Doc type and Fiscal year, which only an eval knows (two 8-Ks can share them).
 _Avoid_: where clause, scope
 
+### Answers
+
+**Answer**:
+Text an Answerer writes for a Question from the Chunks it is given, with inline markers ([2]) for its Citations; it says it can't find the answer when the Chunks don't contain it.
+_Avoid_: response, completion, reply
+
+**Citation**:
+A marker in an Answer pointing to one of the Chunks the Answerer was given, so to a (Document, Page). A marker matching no given Chunk is an invalid citation: dropped and counted.
+_Avoid_: source, reference
+
 ### Evaluation
 
 **Question**:

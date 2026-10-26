@@ -55,7 +55,7 @@ class OpenAIAnswerer:
         )
         response = self._client.chat.completions.create(
             model=ANSWER_MODEL,
-            temperature=0,  # the snapshot takes a temperature only without reasoning
+            temperature=0,  # accepted with reasoning off (make check-answer)
             reasoning_effort="none",
             messages=[
                 {"role": "system", "content": INSTRUCTIONS},
