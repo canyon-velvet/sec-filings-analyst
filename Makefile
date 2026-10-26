@@ -1,4 +1,4 @@
-.PHONY: lint test test-integration check-answer db-up db-reset data split ingest eval
+.PHONY: lint test test-integration check-answer db-up db-reset data split ingest eval answer-eval
 
 lint:
 	uv run ruff check .
@@ -42,3 +42,10 @@ ingest:
 # rerank Experiments load it, and download the model on first use.
 eval:
 	uv run --group rerank --env-file .env python -m sec_filings_analyst.evaluation $(SPLIT) $(EXPERIMENT)
+
+# Answers each Question in a Split from the Experiment's top 10 Chunks, e.g. make answer-eval
+# SPLIT=dev EXPERIMENT=dense-headers: shows the cost ceiling and asks before calling OpenAI, then
+# saves eval/answer_runs/financebench_v1/$(SPLIT)/$(EXPERIMENT).json (never overwritten; no Answer
+# text) with the text in a gitignored .local.jsonl beside it, and regenerates eval/RESULTS.md.
+answer-eval:
+	uv run --group rerank --env-file .env python -m sec_filings_analyst.evaluation $(SPLIT) $(EXPERIMENT) answers

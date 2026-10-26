@@ -112,6 +112,10 @@ def test_an_experiment_runs_only_on_chunks_with_the_header_format_it_expects(tmp
     assert retriever.ks == [50, 50, 50]
 
 
+def YES(summary: str) -> bool:
+    return True
+
+
 REPLIES = {
     "What was 3M's FY2018 capital expenditure?": "Capex was $1,577M [1].",  # Page 60: a hit
     "Is 3M capital intensive?": "Not by its capex [3].",  # 2 Chunks came back: [3] is invalid
@@ -123,7 +127,7 @@ def test_an_answer_run_commits_citations_and_metrics_but_keeps_answer_text_local
     retriever, answerer = FakeRetriever(HITS), FakeAnswerer(REPLIES)
     run_eval(baseline(), "dev", QUESTIONS, PROVENANCE, tmp_path)
 
-    run_answer_eval(baseline(retriever), "dev", QUESTIONS, PROVENANCE, answerer, tmp_path)
+    run_answer_eval(baseline(retriever), "dev", QUESTIONS, PROVENANCE, answerer, YES, tmp_path)
 
     assert retriever.ks == [10, 10, 10]  # the top 10 Chunks go to the Answerer
     assert [len(chunks) for _, chunks in answerer.calls] == [3, 2, 2]
@@ -156,18 +160,37 @@ def test_an_answer_run_commits_citations_and_metrics_but_keeps_answer_text_local
 
 
 def test_an_answer_run_is_refused_before_any_call_for_a_reused_or_invalid_name(tmp_path):
-    run_answer_eval(baseline(), "dev", QUESTIONS, PROVENANCE, FakeAnswerer(REPLIES), tmp_path)
+    run_answer_eval(baseline(), "dev", QUESTIONS, PROVENANCE, FakeAnswerer(REPLIES), YES, tmp_path)
     saved = {p: p.read_text() for p in tmp_path.rglob("*") if p.is_file()}
     retriever, answerer = FakeRetriever(HITS), FakeAnswerer(REPLIES)
 
     with pytest.raises(FileExistsError):
-        run_answer_eval(baseline(retriever), "dev", QUESTIONS, PROVENANCE, answerer, tmp_path)
+        run_answer_eval(baseline(retriever), "dev", QUESTIONS, PROVENANCE, answerer, YES, tmp_path)
     with pytest.raises(ValueError, match="week2/hybrid"):
         experiment = Experiment("week2/hybrid", {}, retriever)
-        run_answer_eval(experiment, "dev", QUESTIONS, PROVENANCE, answerer, tmp_path)
+        run_answer_eval(experiment, "dev", QUESTIONS, PROVENANCE, answerer, YES, tmp_path)
 
     assert (retriever.ks, answerer.calls) == ([], [])
     assert {p: p.read_text() for p in saved} == saved
+
+
+def test_an_answer_run_asks_about_its_cost_ceiling_before_any_call_and_a_no_stops_it(tmp_path):
+    retriever, answerer = FakeRetriever(HITS), FakeAnswerer(REPLIES)
+    asked = []
+
+    def decline(summary: str) -> bool:
+        asked.append((summary, list(retriever.ks), list(answerer.calls)))
+        return False
+
+    run_answer_eval(baseline(retriever), "dev", QUESTIONS, PROVENANCE, answerer, decline, tmp_path)
+
+    ((summary, ks_then, calls_then),) = asked
+    assert (ks_then, calls_then) == ([], [])  # asked before any search or Answer
+    # Each Answer's output is capped at 1,000 tokens; input counts each Chunk at its 512 cap
+    assert "Answer 3 Questions with fake-answerer" in summary
+    assert "3,000 output tokens" in summary and "$" in summary
+    assert (retriever.ks, answerer.calls) == ([], [])
+    assert list(tmp_path.rglob("*")) == []
 
 
 RESULTS_WITH_BASELINE = """\

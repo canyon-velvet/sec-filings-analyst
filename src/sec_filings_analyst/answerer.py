@@ -12,6 +12,8 @@ if TYPE_CHECKING:  # the SDK is heavy; only OpenAIAnswerer's caller needs it loa
     import openai
 
 ANSWER_MODEL = "gpt-5.4-mini-2026-03-17"  # pinned dated snapshot
+INPUT_PRICE_PER_MILLION, OUTPUT_PRICE_PER_MILLION = 0.75, 4.50  # USD, ANSWER_MODEL's list prices
+MAX_ANSWER_TOKENS = 1000  # output cap, so an answer run's cost has a ceiling
 INSTRUCTIONS = (
     "Answer the question about a company's financial documents using only the numbered excerpts."
     " Cite each claim with the number of the excerpt it comes from in square brackets, e.g. [1]"
@@ -57,6 +59,7 @@ class OpenAIAnswerer:
             model=ANSWER_MODEL,
             temperature=0,  # the API accepts it with reasoning off, as make check-answer shows
             reasoning_effort="none",
+            max_completion_tokens=MAX_ANSWER_TOKENS,
             messages=[
                 {"role": "system", "content": INSTRUCTIONS},
                 {"role": "user", "content": f"Question: {question}\n\nExcerpts:\n\n{excerpts}"},

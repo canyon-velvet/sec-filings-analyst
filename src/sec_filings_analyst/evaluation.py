@@ -4,11 +4,19 @@ an Answerer) and scoring, saved as a run."""
 import json
 import os
 import secrets
+from collections.abc import Callable
 from dataclasses import asdict
 from pathlib import Path
 
 from sec_filings_analyst.answer_scoring import Answered, AnswerMetrics, score_answers
-from sec_filings_analyst.answerer import Answerer
+from sec_filings_analyst.answerer import (
+    INPUT_PRICE_PER_MILLION,
+    INSTRUCTIONS,
+    MAX_ANSWER_TOKENS,
+    OUTPUT_PRICE_PER_MILLION,
+    Answerer,
+)
+from sec_filings_analyst.chunking import CHUNK_TOKENS
 from sec_filings_analyst.experiments import Experiment
 from sec_filings_analyst.financebench import Question
 from sec_filings_analyst.retriever import Filter, SearchResult
@@ -17,6 +25,7 @@ from sec_filings_analyst.scoring import Metrics, Page, Retrieval, score
 FETCH_K = 50  # Chunks per Question: several can share a Page, and scoring needs 10 unique Pages
 TOP_PAGES = 5  # retrieved Pages kept per Question, for failure analysis
 ANSWER_CHUNKS = 10  # Chunks the Answerer gets per Question
+EXCERPT_OVERHEAD = 40  # tokens per Chunk in the prompt beyond its text: marker, header, newlines
 
 
 def run_eval(
@@ -66,13 +75,17 @@ def run_answer_eval(
     questions: list[Question],
     provenance: dict,
     answerer: Answerer,
+    confirm: Callable[[str], bool],
     eval_dir: Path,
 ) -> None:
     """Answers each Question from the Experiment's top ANSWER_CHUNKS Chunks. Saves
     eval_dir/answer_runs/<split>/<experiment name>.json without any Answer text, which can restate
     FinanceBench's (CC-BY-NC), and the text beside it in a gitignored .local.jsonl; regenerates
-    eval_dir/RESULTS.md. Refuses names and corpora as run_eval does, before any call."""
+    eval_dir/RESULTS.md. Refuses names and corpora as run_eval does, then asks confirm() about
+    the cost ceiling, all before any call; a no stops it."""
     path = _new_run_path(experiment, eval_dir / "answer_runs" / split, provenance)
+    if not confirm(_cost_ceiling(questions, answerer.model)):
+        return
     answered, texts = {}, {}
     for question in questions:
         chunks = [r.chunk for r in _search(experiment, question, ANSWER_CHUNKS)]
@@ -113,6 +126,19 @@ def run_answer_eval(
     _write(path.with_suffix(".local.jsonl"), "".join(lines), replace=True)
     _write(path, json.dumps(run, indent=2) + "\n", replace=False)
     _write_results(eval_dir)
+
+
+def _cost_ceiling(questions: list[Question], model: str) -> str:
+    """At most what answering costs, known before retrieval: each Chunk at its CHUNK_TOKENS cap,
+    the instructions and Question at one token per character, each Answer at its output cap."""
+    per_chunk = CHUNK_TOKENS + EXCERPT_OVERHEAD
+    tokens_in = sum(len(INSTRUCTIONS) + len(q.text) + ANSWER_CHUNKS * per_chunk for q in questions)
+    tokens_out = len(questions) * MAX_ANSWER_TOKENS
+    cost = (tokens_in * INPUT_PRICE_PER_MILLION + tokens_out * OUTPUT_PRICE_PER_MILLION) / 1e6
+    return (
+        f"Answer {len(questions)} Questions with {model}: at most {tokens_in:,} input and"
+        f" {tokens_out:,} output tokens, ${cost:.2f}"
+    )
 
 
 def _new_run_path(experiment: Experiment, folder: Path, provenance: dict) -> Path:
@@ -239,12 +265,13 @@ if __name__ == "__main__":
     import openai
     import psycopg
 
+    from sec_filings_analyst.answerer import OpenAIAnswerer
     from sec_filings_analyst.embedder import OpenAIEmbedder
     from sec_filings_analyst.experiments import build_experiment
     from sec_filings_analyst.financebench import load_questions
     from sec_filings_analyst.ingest import describe_corpus
 
-    split_name, name = sys.argv[1:]  # e.g. dev dense-headers
+    split_name, name, *mode = sys.argv[1:]  # e.g. dev dense-headers, then "answers" for answers
     split_file = Path("eval/splits/financebench_v1.json")
     ids = set(json.loads(split_file.read_text())[split_name])
     all_questions = load_questions(Path("data/financebench/financebench_merged.jsonl"))
@@ -254,11 +281,21 @@ if __name__ == "__main__":
         return subprocess.run(["git", *args], check=True, capture_output=True, text=True).stdout
 
     # -dirty: uncommitted changes (code, pins, Split), apart from the eval outputs runs write
-    changes = git("status", "--porcelain", "--", ".", ":!eval/runs", ":!eval/RESULTS.md")
+    outputs = [":!eval/runs", ":!eval/answer_runs", ":!eval/RESULTS.md"]
+    changes = git("status", "--porcelain", "--", ".", *outputs)
     commit = git("rev-parse", "HEAD").strip() + ("-dirty" if changes else "")
     with psycopg.connect(os.environ["DATABASE_URL"], autocommit=True) as conn:
         # First: it refuses a database without corpus settings, before a Searcher queries it
         provenance = {"commit": commit, "corpus": describe_corpus(conn)}
-        experiment = build_experiment(name, conn, OpenAIEmbedder(openai.OpenAI()))
+        client = openai.OpenAI()
+        experiment = build_experiment(name, conn, OpenAIEmbedder(client))
         split = f"{split_file.stem}/{split_name}"
-        run_eval(experiment, split, questions, provenance, Path("eval"))
+        if mode == ["answers"]:
+
+            def ask(summary: str) -> bool:
+                return input(f"{summary}. Go ahead? [y/N] ").strip().lower() == "y"
+
+            answerer = OpenAIAnswerer(client)
+            run_answer_eval(experiment, split, questions, provenance, answerer, ask, Path("eval"))
+        else:
+            run_eval(experiment, split, questions, provenance, Path("eval"))
