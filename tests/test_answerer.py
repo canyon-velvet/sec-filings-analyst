@@ -48,3 +48,9 @@ def test_asks_the_pinned_model_at_temperature_0_with_each_chunk_under_its_number
     prompt = request["messages"][-1]["content"]
     assert "What was ACME's revenue?" in prompt
     assert "[2] Beta 10-Q FY2022, page 3\nNet income fell 5%." in prompt
+
+
+def test_a_reply_without_text_is_an_answer_citing_nothing():  # the SDK gives None on a refusal
+    answer = OpenAIAnswerer(FakeOpenAIClient(reply=None)).answer("What was ACME's revenue?", CHUNKS)
+
+    assert (answer.text, answer.citations, answer.invalid_citations) == ("", [], 0)

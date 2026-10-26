@@ -8,7 +8,7 @@ class FakeOpenAIClient:
     request, answers embeddings with WordHashEmbedder's vectors (in input order) and every chat
     completion with the canned reply."""
 
-    def __init__(self, reply: str = ""):
+    def __init__(self, reply: str | None = ""):
         self.embeddings = self  # so client.embeddings.create(...) works like the SDK
         self.chat = SimpleNamespace(completions=SimpleNamespace(create=self._complete))
         self.requests: list[dict] = []  # each: {"model": ..., "input": [...]}

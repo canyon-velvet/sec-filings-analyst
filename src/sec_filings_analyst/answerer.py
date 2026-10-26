@@ -55,14 +55,15 @@ class OpenAIAnswerer:
         )
         response = self._client.chat.completions.create(
             model=ANSWER_MODEL,
-            temperature=0,  # accepted with reasoning off (make check-answer)
+            temperature=0,  # the API accepts it with reasoning off, as make check-answer shows
             reasoning_effort="none",
             messages=[
                 {"role": "system", "content": INSTRUCTIONS},
                 {"role": "user", "content": f"Question: {question}\n\nExcerpts:\n\n{excerpts}"},
             ],
         )
-        return cite(response.choices[0].message.content, chunks)
+        # None when the model refuses: an Answer citing nothing, not a crash mid-run
+        return cite(response.choices[0].message.content or "", chunks)
 
 
 def cite(text: str, chunks: list[Chunk]) -> Answer:
