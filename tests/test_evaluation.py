@@ -2,9 +2,10 @@ import json
 from pathlib import Path
 
 import pytest
+from fakes.answerer import FakeAnswerer
 from fakes.retriever import FakeRetriever
 
-from sec_filings_analyst.evaluation import run_eval
+from sec_filings_analyst.evaluation import run_answer_eval, run_eval
 from sec_filings_analyst.experiments import ORACLE_FILTER, Experiment
 from sec_filings_analyst.financebench import load_questions
 from sec_filings_analyst.retriever import Filter
@@ -109,6 +110,64 @@ def test_an_experiment_runs_only_on_chunks_with_the_header_format_it_expects(tmp
     headers = Experiment("dense-headers", {"header_format": "{company}"}, retriever)
     run_eval(headers, "dev", QUESTIONS, headered, tmp_path)
     assert retriever.ks == [50, 50, 50]
+
+
+REPLIES = {
+    "What was 3M's FY2018 capital expenditure?": "Capex was $1,577M [1].",  # Page 60: a hit
+    "Is 3M capital intensive?": "Not by its capex [3].",  # 2 Chunks came back: [3] is invalid
+    "What did Amcor announce?": "A merger [1] [2].",  # 3M's Page 1 misses; AMCOR's Page 3 hits
+}
+
+
+def test_an_answer_run_commits_citations_and_metrics_but_keeps_answer_text_local(tmp_path):
+    retriever, answerer = FakeRetriever(HITS), FakeAnswerer(REPLIES)
+    run_eval(baseline(), "dev", QUESTIONS, PROVENANCE, tmp_path)
+
+    run_answer_eval(baseline(retriever), "dev", QUESTIONS, PROVENANCE, answerer, tmp_path)
+
+    assert retriever.ks == [10, 10, 10]  # the top 10 Chunks go to the Answerer
+    assert [len(chunks) for _, chunks in answerer.calls] == [3, 2, 2]
+    committed = (tmp_path / "answer_runs" / "dev" / "dense-baseline.json").read_text()
+    run = json.loads(committed)
+    assert run["config"] == {"answer_model": "fake-answerer", "answer_chunks": 10}
+    assert (run["commit"], run["corpus"]) == ("abc123", {"documents": 2, "chunks": 5})
+    assert run["overall"] == {"citation_hit_rate": 2 / 3, "invalid_citations": 1, "n": 3}
+    assert run["by_type"]["domain-relevant"] == {
+        "citation_hit_rate": 0.0,
+        "invalid_citations": 1,
+        "n": 1,
+    }
+    assert run["questions"]["financebench_id_00003"] == {
+        "question_type": "novel-generated",
+        "evidence_pages": [[AMCOR, 3]],
+        "cited_pages": [[MMM, 1], [AMCOR, 3]],
+        "invalid_citations": 0,
+        "citation_hit": True,
+    }
+    assert not any(reply.split(" [")[0] in committed for reply in REPLIES.values())
+    local = (tmp_path / "answer_runs" / "dev" / "dense-baseline.local.jsonl").read_text()
+    assert json.loads(local.splitlines()[1]) == {
+        "id": "financebench_id_00002",
+        "answer": "Not by its capex.",
+    }
+    results = (tmp_path / "RESULTS.md").read_text()
+    assert results.startswith(RESULTS_WITH_BASELINE)  # the retrieval tables stay
+    assert "| dense-baseline | dev | fake-answerer | 0.67 | 1 | 3 |" in results
+
+
+def test_an_answer_run_is_refused_before_any_call_for_a_reused_or_invalid_name(tmp_path):
+    run_answer_eval(baseline(), "dev", QUESTIONS, PROVENANCE, FakeAnswerer(REPLIES), tmp_path)
+    saved = {p: p.read_text() for p in tmp_path.rglob("*") if p.is_file()}
+    retriever, answerer = FakeRetriever(HITS), FakeAnswerer(REPLIES)
+
+    with pytest.raises(FileExistsError):
+        run_answer_eval(baseline(retriever), "dev", QUESTIONS, PROVENANCE, answerer, tmp_path)
+    with pytest.raises(ValueError, match="week2/hybrid"):
+        experiment = Experiment("week2/hybrid", {}, retriever)
+        run_answer_eval(experiment, "dev", QUESTIONS, PROVENANCE, answerer, tmp_path)
+
+    assert (retriever.ks, answerer.calls) == ([], [])
+    assert {p: p.read_text() for p in saved} == saved
 
 
 RESULTS_WITH_BASELINE = """\
