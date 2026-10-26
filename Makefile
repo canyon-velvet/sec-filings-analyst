@@ -1,4 +1,4 @@
-.PHONY: lint test test-integration db-up db-reset data split ingest eval
+.PHONY: lint test test-integration check-answer db-up db-reset data split ingest eval
 
 lint:
 	uv run ruff check .
@@ -8,7 +8,12 @@ test:
 	uv run pytest -m "not integration"
 
 test-integration:
-	uv run pytest -m integration
+	uv run pytest -m "integration and not live"
+
+# Answers one real dev Question with real Chunks via OpenAI, about half a cent (needs make data,
+# the ingested corpus and OPENAI_API_KEY in .env); prints the Answer.
+check-answer:
+	uv run --env-file .env pytest -m live -s
 
 db-up:
 	docker compose up -d --wait
