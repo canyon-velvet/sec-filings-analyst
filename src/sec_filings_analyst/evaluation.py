@@ -1,5 +1,5 @@
-"""Eval runner: every Question in a Split through an Experiment's Searcher and scoring, saved
-as a run."""
+"""Eval runners: every Question in a Split through an Experiment's Searcher (and, for answer runs,
+an Answerer) and scoring, saved as a run."""
 
 import json
 import os
@@ -7,13 +7,16 @@ import secrets
 from dataclasses import asdict
 from pathlib import Path
 
+from sec_filings_analyst.answer_scoring import Answered, AnswerMetrics, score_answers
+from sec_filings_analyst.answerer import Answerer
 from sec_filings_analyst.experiments import Experiment
 from sec_filings_analyst.financebench import Question
-from sec_filings_analyst.retriever import Filter
+from sec_filings_analyst.retriever import Filter, SearchResult
 from sec_filings_analyst.scoring import Metrics, Page, Retrieval, score
 
 FETCH_K = 50  # Chunks per Question: several can share a Page, and scoring needs 10 unique Pages
 TOP_PAGES = 5  # retrieved Pages kept per Question, for failure analysis
+ANSWER_CHUNKS = 10  # Chunks the Answerer gets per Question
 
 
 def run_eval(
@@ -25,26 +28,12 @@ def run_eval(
     ValueError for an experiment name that isn't a plain file name or a corpus whose Contextual
     headers aren't the ones the experiment expects."""
     name = experiment.name
-    if Path(name).name != name:
-        raise ValueError(f"experiment {name!r} must be a plain name, without folders")
-    path = eval_dir / "runs" / split / f"{name}.json"
-    if path.exists():
-        raise FileExistsError(f"{path} exists; name the new run differently")
-    expected = experiment.settings.get("header_format")  # None: bare Chunks
-    corpus = provenance["corpus"].get("header_format")
-    if corpus != expected:
-        expects, has = (f"headers {f!r}" if f else "no headers" for f in (expected, corpus))
-        raise ValueError(f"{name} expects Chunks with {expects}, but the corpus has {has}")
+    path = _new_run_path(experiment, eval_dir / "runs" / split, provenance)
     retrievals = {}
     for question in questions:
-        filter = None
-        if experiment.oracle_filter:
-            document = question.document
-            filter = Filter(document.company, document.doc_type, document.fiscal_year)
-        results = experiment.searcher.search(question.text, k=FETCH_K, filter=filter)
+        results = _search(experiment, question, FETCH_K)
         ranked = [Page(r.chunk.document.name, r.chunk.page) for r in results]
-        evidence = {Page(question.document.name, n) for n in question.evidence_pages}
-        retrievals[question.id] = Retrieval(question.question_type, ranked, evidence)
+        retrievals[question.id] = Retrieval(question.question_type, ranked, _evidence(question))
     scores = score(retrievals)
     run = {
         "experiment": name,
@@ -68,8 +57,100 @@ def run_eval(
     }
     path.parent.mkdir(parents=True, exist_ok=True)
     _write(path, json.dumps(run, indent=2) + "\n", replace=False)
-    run_files = sorted((eval_dir / "runs").rglob("*.json"))
-    _write(eval_dir / "RESULTS.md", _results_table(run_files), replace=True)
+    _write_results(eval_dir)
+
+
+def run_answer_eval(
+    experiment: Experiment,
+    split: str,
+    questions: list[Question],
+    provenance: dict,
+    answerer: Answerer,
+    eval_dir: Path,
+) -> None:
+    """Answers each Question from the Experiment's top ANSWER_CHUNKS Chunks. Saves
+    eval_dir/answer_runs/<split>/<experiment name>.json without any Answer text, which can restate
+    FinanceBench's (CC-BY-NC), and the text beside it in a gitignored .local.jsonl; regenerates
+    eval_dir/RESULTS.md. Refuses names and corpora as run_eval does, before any call."""
+    path = _new_run_path(experiment, eval_dir / "answer_runs" / split, provenance)
+    answered, texts = {}, {}
+    for question in questions:
+        chunks = [r.chunk for r in _search(experiment, question, ANSWER_CHUNKS)]
+        answer = answerer.answer(question.text, chunks)
+        # Unique Pages in the order first cited: two cited Chunks can share a Page
+        cited = list(
+            dict.fromkeys(Page(c.chunk.document.name, c.chunk.page) for c in answer.citations)
+        )
+        invalid = answer.invalid_citations
+        answered[question.id] = Answered(
+            question.question_type, cited, invalid, _evidence(question)
+        )
+        texts[question.id] = answer.text
+    scores = score_answers(answered)
+    run = {
+        "experiment": experiment.name,
+        "split": split,
+        "config": experiment.settings
+        | {"answer_model": answerer.model, "answer_chunks": ANSWER_CHUNKS},
+        "commit": provenance["commit"],
+        "corpus": provenance["corpus"],
+        "overall": asdict(scores.overall),
+        "by_type": {t: asdict(m) for t, m in scores.by_type.items()},
+        "questions": {
+            qid: {
+                "question_type": a.question_type,
+                "evidence_pages": sorted(_pair(p) for p in a.evidence),
+                "cited_pages": [_pair(p) for p in a.cited],
+                "invalid_citations": a.invalid_citations,
+                "citation_hit": scores.citation_hits[qid],
+            }
+            for qid, a in answered.items()
+        },
+    }
+    lines = [json.dumps({"id": qid, "answer": text}) + "\n" for qid, text in texts.items()]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    # The text first: a run file never exists without its Answers
+    _write(path.with_suffix(".local.jsonl"), "".join(lines), replace=True)
+    _write(path, json.dumps(run, indent=2) + "\n", replace=False)
+    _write_results(eval_dir)
+
+
+def _new_run_path(experiment: Experiment, folder: Path, provenance: dict) -> Path:
+    """Where the Experiment's new run goes. Raises FileExistsError if it was already run, and
+    ValueError for a name that isn't a plain file name or a corpus whose Contextual headers
+    aren't the ones the Experiment expects."""
+    name = experiment.name
+    if Path(name).name != name:
+        raise ValueError(f"experiment {name!r} must be a plain name, without folders")
+    path = folder / f"{name}.json"
+    if path.exists():
+        raise FileExistsError(f"{path} exists; name the new run differently")
+    expected = experiment.settings.get("header_format")  # None: bare Chunks
+    corpus = provenance["corpus"].get("header_format")
+    if corpus != expected:
+        expects, has = (f"headers {f!r}" if f else "no headers" for f in (expected, corpus))
+        raise ValueError(f"{name} expects Chunks with {expects}, but the corpus has {has}")
+    return path
+
+
+def _search(experiment: Experiment, question: Question, k: int) -> list[SearchResult]:
+    filter = None
+    if experiment.oracle_filter:
+        document = question.document
+        filter = Filter(document.company, document.doc_type, document.fiscal_year)
+    return experiment.searcher.search(question.text, k=k, filter=filter)
+
+
+def _evidence(question: Question) -> set[Page]:
+    return {Page(question.document.name, n) for n in question.evidence_pages}
+
+
+def _write_results(eval_dir: Path) -> None:
+    table = _results_table(sorted((eval_dir / "runs").rglob("*.json")))
+    answer_runs = sorted((eval_dir / "answer_runs").rglob("*.json"))
+    if answer_runs:
+        table += "\n" + _answer_table(answer_runs)
+    _write(eval_dir / "RESULTS.md", table, replace=True)
 
 
 def _write(path: Path, text: str, replace: bool) -> None:
@@ -117,6 +198,25 @@ def _results_table(run_files: list[Path]) -> str:
         by_type = run["by_type"]
         hits = [_fmt(by_type[t]["hit_at_5"]) if t in by_type else "–" for t in types]
         lines.append(_row([run["experiment"], run["split"], *hits]))
+    return "\n".join(lines) + "\n"
+
+
+def _answer_table(run_files: list[Path]) -> str:
+    runs = [json.loads(f.read_text(encoding="utf-8")) for f in run_files]
+    lines = [
+        "# Answer results",
+        "",
+        "Generated by `make answer-eval` from `eval/answer_runs/`. Citation hit: the Answer cites",
+        "at least one Evidence page; invalid citations: markers matching no Chunk it was given.",
+        "",
+        _row(["Experiment", "Split", "Answer model", "Citation hit", "Invalid citations", "n"]),
+        _separator(6),
+    ]
+    for run in runs:
+        m = AnswerMetrics(**run["overall"])
+        model = run["config"]["answer_model"]
+        cells = [model, _fmt(m.citation_hit_rate), str(m.invalid_citations), str(m.n)]
+        lines.append(_row([run["experiment"], run["split"], *cells]))
     return "\n".join(lines) + "\n"
 
 
