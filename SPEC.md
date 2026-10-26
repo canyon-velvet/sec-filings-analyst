@@ -31,7 +31,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - [x] Keyword search + hybrid RRF: dev Hit@5 0.10 (BM25), 0.26 (hybrid) vs dense 0.40 (#28, #29)
 - [x] Reranker: dev Hit@5 0.32 (50 candidates), 0.30 (100) vs dense 0.40 (#30)
 - [x] Metadata filters + contextual headers: dev Hit@5 0.60 with oracle filters (an upper bound), 0.54 with headers, vs dense 0.40 (#31, #32)
-- [ ] Cited Answers + answer evals (#33 done: Answerer with inline Citations; #34–#36)
+- [ ] Cited Answers + answer evals (#33, #34 done: Answerer with inline Citations, answer-eval runner with citation metrics; #35, #36)
 - [ ] Judge validation + test-Split report (#37, #38)
 ### Week 3: agent tools (search, calculate) + loop · follow-ups · /chat SSE · chat UI (citations, agent-steps panel) · agent evals
 ### Week 4: EDGAR on-demand ingestion (ticker + form + year) · HTML parsing · section-based citations · fetch-filing agent tool
@@ -56,7 +56,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-16 · FinanceBench pinned: HF dataset revision + PDFs from its GitHub repo at a fixed commit · every run scores the same inputs
 - 2026-10-19 · FinanceBench `evidence_page_num` is 0-based; `load_questions` adds 1 · all 189 full-page evidence texts match our parsed Page at num + 1 (≥ 0.95 similarity), none at num
 - 2026-10-19 · Embeddings requested 256 texts at a time · stays under OpenAI's 300k-tokens-per-request cap with 512-token Chunks
-- 2026-10-19 · `make ingest` shows tokens + estimated cost and asks before any embedding request · money is never spent by accident
+- 2026-10-19 · `make ingest` shows tokens + estimated cost and asks before any embedding request; `make answer-eval` shows a cost ceiling (Chunks at 512 tokens, Answers capped at 1,000) · money is never spent by accident
 - 2026-10-19 · Ingest skips Documents already stored (by name), one transaction each · a rerun resumes without paying twice; after a chunking change, `make db-reset` first
 - 2026-10-19 · `CHECK` on `documents.doc_type` (10-K, 10-Q, 8-K, Earnings) · a value that skipped normalization fails loudly
 - 2026-10-19 · Eval fetches 50 Chunks per Question · several Chunks share a Page, and @10 metrics need 10 unique Pages
@@ -93,7 +93,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-24 · `dense-oracle-filter` on dev, an upper bound: Hit@5 0.60 · MRR@10 0.38 (dense 0.40 · 0.24); 10 Questions gained, 0 lost; 123 of dense's 250 top-5 Pages are from other Documents (#31)
 - 2026-10-25 · Re-ingest #2 with Contextual headers (10.8M tokens, ≈ $0.22). Dev Hit@5 · MRR@10: `dense-headers` 0.54 · 0.31 (9 Questions gained, 2 lost vs dense), `hybrid-rrf-headers` 0.46 · 0.32 (best Hit@1, 0.24), `keyword-bm25-headers` 0.20 · 0.15; dense's top-5 Pages from other Documents 123 → 105 (#32)
 - 2026-10-25 · `OpenAIAnswerer` (Question + Chunks → Answer with Citations) and `FakeAnswerer`; `make check-answer`: one numeric dev Question answered with FinanceBench's figure, citing its Evidence page, for under a cent (#33)
-- 2026-10-26 · Answer scoring: `score_answers()` → citation hit rate (cites ≥ 1 Evidence page) and invalid citations, overall and per type; `run_answer_eval()`: top 10 Chunks per Question to the Answerer, runs in `eval/answer_runs/`, an answer table in RESULTS.md (#34, parts 1–2)
+- 2026-10-26 · Answer scoring: `score_answers()` → citation hit rate (cites ≥ 1 Evidence page) and invalid citations, overall and per type; `run_answer_eval()`: top 10 Chunks per Question to the Answerer, runs in `eval/answer_runs/`, an answer table in RESULTS.md; `make answer-eval` asks about the cost ceiling first, dev ≤ $0.45 (#34)
 
 ## How to resume
 1. Read this file, `git log --oneline -20` and the open `ready-for-agent` issues. 2. Take the first unchecked task.

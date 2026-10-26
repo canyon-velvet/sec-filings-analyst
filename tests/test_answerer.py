@@ -45,6 +45,7 @@ def test_asks_the_pinned_model_at_temperature_0_with_each_chunk_under_its_number
     (request,) = client.chat_requests
     assert request["model"] == "gpt-5.4-mini-2026-03-17"
     assert (request["temperature"], request["reasoning_effort"]) == (0, "none")
+    assert request["max_completion_tokens"] == 1000  # so an answer run's cost has a ceiling
     prompt = request["messages"][-1]["content"]
     assert "What was ACME's revenue?" in prompt
     assert "[2] Beta 10-Q FY2022, page 3\nNet income fell 5%." in prompt
