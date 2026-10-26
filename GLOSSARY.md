@@ -69,7 +69,7 @@ Tuned on dev, then reported on test under the same name.
 _Avoid_: config, variant
 
 **Run**:
-One Experiment scored on one Split, saved once and never overwritten, with the commit and the corpus (counts + Corpus settings) it ran against.
+One Experiment scored on one Split, for retrieval or for its Answers (an answer run), saved once and never overwritten, with the commit and the corpus (counts + Corpus settings) it ran against.
 _Avoid_: result, job
 
 **Split**:

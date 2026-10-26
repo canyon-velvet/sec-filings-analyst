@@ -60,7 +60,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-19 · Ingest skips Documents already stored (by name), one transaction each · a rerun resumes without paying twice; after a chunking change, `make db-reset` first
 - 2026-10-19 · `CHECK` on `documents.doc_type` (10-K, 10-Q, 8-K, Earnings) · a value that skipped normalization fails loudly
 - 2026-10-19 · Eval fetches 50 Chunks per Question · several Chunks share a Page, and @10 metrics need 10 unique Pages
-- 2026-10-19 · One results file per (Split, experiment), never overwritten; `eval/RESULTS.md` regenerated from all of them · reported numbers can't silently change
+- 2026-10-19 · One results file per (Split, experiment), never overwritten; `eval/RESULTS.md` regenerated from all of them; answer runs commit no Answer text (it goes to a gitignored `.local.jsonl` beside the run) · reported numbers can't silently change; Answers can restate FinanceBench (CC-BY-NC)
 - 2026-10-15 · Any company via EDGAR on demand (built week 4, deployed week 5); FinanceBench stays the eval set · goal is answering questions on any filing; the benchmark proves the pipeline
 - 2026-10-21 · Experiments are named in code (name → Searcher stack + settings); unknown names refused · one entry holds both the stack and the settings its runs record, not hand-built config in the entry point
 - 2026-10-21 · Run files written to a temp file, then hard-linked into place · a crashed or killed run leaves no half file (no fsync), and a run still can't be overwritten
@@ -93,7 +93,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-24 · `dense-oracle-filter` on dev, an upper bound: Hit@5 0.60 · MRR@10 0.38 (dense 0.40 · 0.24); 10 Questions gained, 0 lost; 123 of dense's 250 top-5 Pages are from other Documents (#31)
 - 2026-10-25 · Re-ingest #2 with Contextual headers (10.8M tokens, ≈ $0.22). Dev Hit@5 · MRR@10: `dense-headers` 0.54 · 0.31 (9 Questions gained, 2 lost vs dense), `hybrid-rrf-headers` 0.46 · 0.32 (best Hit@1, 0.24), `keyword-bm25-headers` 0.20 · 0.15; dense's top-5 Pages from other Documents 123 → 105 (#32)
 - 2026-10-25 · `OpenAIAnswerer` (Question + Chunks → Answer with Citations) and `FakeAnswerer`; `make check-answer`: one numeric dev Question answered with FinanceBench's figure, citing its Evidence page, for under a cent (#33)
-- 2026-10-26 · Answer scoring: `score_answers()` → citation hit rate (cites ≥ 1 Evidence page) and invalid citations, overall and per type (#34, part 1)
+- 2026-10-26 · Answer scoring: `score_answers()` → citation hit rate (cites ≥ 1 Evidence page) and invalid citations, overall and per type; `run_answer_eval()`: top 10 Chunks per Question to the Answerer, runs in `eval/answer_runs/`, an answer table in RESULTS.md (#34, parts 1–2)
 
 ## How to resume
 1. Read this file, `git log --oneline -20` and the open `ready-for-agent` issues. 2. Take the first unchecked task.
