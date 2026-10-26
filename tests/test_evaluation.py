@@ -117,7 +117,8 @@ def YES(summary: str) -> bool:
 
 
 REPLIES = {
-    "What was 3M's FY2018 capital expenditure?": "Capex was $1,577M [1].",  # Page 60: a hit
+    # Page 60: a hit; and FinanceBench's "$1,577 million" within 1%
+    "What was 3M's FY2018 capital expenditure?": "Capex was $1.58 billion [1].",
     "Is 3M capital intensive?": "Not by its capex [3].",  # 2 Chunks came back: [3] is invalid
     "What did Amcor announce?": "A merger [1] [2].",  # 3M's Page 1 misses; AMCOR's Page 3 hits
 }
@@ -135,18 +136,28 @@ def test_an_answer_run_commits_citations_and_metrics_but_keeps_answer_text_local
     run = json.loads(committed)
     assert run["config"] == {"answer_model": "fake-answerer", "answer_chunks": 10}
     assert (run["commit"], run["corpus"]) == ("abc123", {"documents": 2, "chunks": 5})
-    assert run["overall"] == {"citation_hit_rate": 2 / 3, "invalid_citations": 1, "n": 3}
+    assert run["overall"] == {
+        "citation_hit_rate": 2 / 3,
+        "invalid_citations": 1,
+        "numeric_accuracy": 1.0,  # only 00001's answer is a number
+        "numeric_n": 1,
+        "n": 3,
+    }
     assert run["by_type"]["domain-relevant"] == {
         "citation_hit_rate": 0.0,
         "invalid_citations": 1,
+        "numeric_accuracy": None,
+        "numeric_n": 0,
         "n": 1,
     }
+    assert run["questions"]["financebench_id_00001"]["numeric_match"] is True
     assert run["questions"]["financebench_id_00003"] == {
         "question_type": "novel-generated",
         "evidence_pages": [[AMCOR, 3]],
         "cited_pages": [[MMM, 1], [AMCOR, 3]],
         "invalid_citations": 0,
         "citation_hit": True,
+        "numeric_match": None,
     }
     assert not any(reply.split(" [")[0] in committed for reply in REPLIES.values())
     local = (tmp_path / "answer_runs" / "dev" / "dense-baseline.local.jsonl").read_text()
@@ -156,7 +167,7 @@ def test_an_answer_run_commits_citations_and_metrics_but_keeps_answer_text_local
     }
     results = (tmp_path / "RESULTS.md").read_text()
     assert results.startswith(RESULTS_WITH_BASELINE)  # the retrieval tables stay
-    assert "| dense-baseline | dev | fake-answerer | 0.67 | 1 | 3 |" in results
+    assert "| dense-baseline | dev | fake-answerer | 0.67 | 1.00 of 1 | 1 | 3 |" in results
 
 
 def test_an_answer_run_is_refused_before_any_call_for_a_reused_or_invalid_name(tmp_path):
