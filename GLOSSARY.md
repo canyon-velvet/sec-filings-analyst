@@ -53,6 +53,10 @@ _Avoid_: response, completion, reply
 A marker in an Answer pointing to one of the Chunks the Answerer was given, so to a (Document, Page). A marker matching no given Chunk is an invalid citation: dropped and counted.
 _Avoid_: source, reference
 
+**Numeric check**:
+For a Question whose FinanceBench answer is a single number (a numeric Question), whether the Answer states that number within 1%; a rule in code that cross-checks the Judge.
+_Avoid_: exact match, numeric accuracy (that's the share of numeric Questions that pass)
+
 ### Evaluation
 
 **Question**:

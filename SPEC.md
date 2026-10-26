@@ -31,7 +31,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - [x] Keyword search + hybrid RRF: dev Hit@5 0.10 (BM25), 0.26 (hybrid) vs dense 0.40 (#28, #29)
 - [x] Reranker: dev Hit@5 0.32 (50 candidates), 0.30 (100) vs dense 0.40 (#30)
 - [x] Metadata filters + contextual headers: dev Hit@5 0.60 with oracle filters (an upper bound), 0.54 with headers, vs dense 0.40 (#31, #32)
-- [ ] Cited Answers + answer evals (#33, #34 done: Answerer with inline Citations, answer-eval runner with citation metrics; #35, #36)
+- [ ] Cited Answers + answer evals (#33–#35 done: Answerer with inline Citations, answer-eval runner with citation metrics, numeric check; #36)
 - [ ] Judge validation + test-Split report (#37, #38)
 ### Week 3: agent tools (search, calculate) + loop · follow-ups · /chat SSE · chat UI (citations, agent-steps panel) · agent evals
 ### Week 4: EDGAR on-demand ingestion (ticker + form + year) · HTML parsing · section-based citations · fetch-filing agent tool
@@ -71,13 +71,13 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-24 · Filter (company, Doc type, Fiscal year; each optional) applied before the top-k cut: dense in its SQL, keyword ranks only the Chunks SQL matches; hybrid and reranking pass it on · cutting first would leave few Chunks. Oracle filters lift dev Hit@5 to 0.60 (dense 0.40): half of dense's top-5 Pages are other Documents', so the week-3 agent should filter
 - 2026-10-25 · Contextual header `{company} {doc_type} FY{fiscal_year}, page {page}` embedded and keyword-indexed with each Chunk, not stored in its text; no LLM · ≈ $0.007 of tokens vs hundreds of dollars for LLM-written context (docs/adr/0002); dev Hit@5 0.54 vs 0.40, so dense on the headered corpus (`dense-headers`) is now the default Searcher
 - 2026-10-25 · Answerer: gpt-5.4-mini-2026-03-17 (Chat Completions, temperature 0, reasoning off) answers from the Chunks it is given, numbered with their Contextual headers; inline [n] markers become Citations, numbers matching no Chunk are dropped and counted · newest dated mini snapshot (gpt-4.1-mini is deprecated, gpt-6 names have no dated snapshot); markers carry over to the chat UI; no retrieval inside, so the agent reuses it
+- 2026-10-26 · Numeric check: a Question is numeric when FinanceBench's whole answer is one number; the Answer matches when any of its numbers (markers removed) is within 1%, sizes only; no scale word or % in the gold → any power-of-1000 scale · Answers often give the sign in words ("fell 3.7%") and the unit only in the Question; lenient because it cross-checks the Judge (#36), not the headline metric
 
 ## Open questions
 - None
 
 ## Progress log
-- 2026-10-14 · Repo bootstrapped; README (problem + planned approach)
-- 2026-10-15 · Scope widened to any company via EDGAR; week-1 spec published as issue #2
+- 2026-10-14 · Repo bootstrapped; README (problem + planned approach). 2026-10-15 · Scope widened to any company via EDGAR; week-1 spec published as issue #2
 - 2026-10-15 · uv skeleton, CI (lint + unit tests), ruff lint hook; push gate hook (no main, reviewed HEAD, no merged-PR branches); `env.example` rename (#4)
 - 2026-10-15 · Postgres + pgvector (Docker :5433), `make db-up` / `make db-reset`, documents + chunks schema (#5); tracer bullet: fixture PDF → pypdfium2 Pages → fake Embedder → Postgres → `Retriever.search`; GLOSSARY.md (#6)
 - 2026-10-16 · Page-bounded chunking, 512 tokens with 64 overlap (cl100k_base); text-less PDFs refused (#7); retrieval scoring: `score()` → Hit@1/5/10, Recall@10, MRR@10 per Question, per type, overall (#8)
@@ -86,14 +86,14 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-19 · `make eval`: dense-only baseline on dev, Hit@5 0.40 · MRR@10 0.24; 27 of 30 misses retrieve the right Document but the wrong Page (#12)
 - 2026-10-20 · Week-2 spec #26 and tickets #27–#38
 - 2026-10-21 · `make eval EXPERIMENT=` builds a named Experiment; runs record commit, Document/Chunk counts, Questions under 10 Pages; atomic UTF-8 writes (#27)
-- 2026-10-22 · Corpus settings in the database; ingest refuses mixed settings; runs read them from the database; re-ingest #1 (#28, part 1)
-- 2026-10-22 · `keyword-bm25` on dev: Hit@5 0.10 · MRR@10 0.11 (dense 0.40 · 0.24); right company, wrong year or Page; only 2 Questions in the top 10 by keyword but not dense (#28)
+- 2026-10-22 · Corpus settings in the database; ingest refuses mixed settings; runs read them from the database; re-ingest #1 (#28, part 1). `keyword-bm25` on dev: Hit@5 0.10 · MRR@10 0.11 (dense 0.40 · 0.24); right company, wrong year or Page; only 2 Questions in the top 10 by keyword but not dense (#28)
 - 2026-10-23 · `hybrid-rrf` on dev: Hit@5 0.26 · MRR@10 0.18; 4 Questions gained, 11 lost from dense's top 5; evidence in the 50 Chunks for 34 Questions (dense 39, re-run on the same corpus) (#29)
 - 2026-10-23 · `dense-rerank-50` / `-100` on dev: Hit@5 0.32 / 0.30 · MRR@10 0.21 / 0.20, ~10 / 15 s per Question; 5 / 4 gained, 9 / 9 lost vs dense; only ~1% of text cut at 512 tokens (10% sample of Chunks) (#30)
 - 2026-10-24 · `dense-oracle-filter` on dev, an upper bound: Hit@5 0.60 · MRR@10 0.38 (dense 0.40 · 0.24); 10 Questions gained, 0 lost; 123 of dense's 250 top-5 Pages are from other Documents (#31)
 - 2026-10-25 · Re-ingest #2 with Contextual headers (10.8M tokens, ≈ $0.22). Dev Hit@5 · MRR@10: `dense-headers` 0.54 · 0.31 (9 Questions gained, 2 lost vs dense), `hybrid-rrf-headers` 0.46 · 0.32 (best Hit@1, 0.24), `keyword-bm25-headers` 0.20 · 0.15; dense's top-5 Pages from other Documents 123 → 105 (#32)
 - 2026-10-25 · `OpenAIAnswerer` (Question + Chunks → Answer with Citations) and `FakeAnswerer`; `make check-answer`: one numeric dev Question answered with FinanceBench's figure, citing its Evidence page, for under a cent (#33)
 - 2026-10-26 · Answer scoring: `score_answers()` → citation hit rate (cites ≥ 1 Evidence page) and invalid citations, overall and per type; `run_answer_eval()`: top 10 Chunks per Question to the Answerer, runs in `eval/answer_runs/`, an answer table in RESULTS.md; `make answer-eval` asks about the cost ceiling first, dev ≤ $0.45 (#34)
+- 2026-10-26 · `numeric_match()` and numeric-check accuracy (numeric Questions only) in answer scoring, answer runs and the answer table; 52 of 150 Questions numeric, 17 in dev, all of dev's metrics-generated (#35)
 
 ## How to resume
 1. Read this file, `git log --oneline -20` and the open `ready-for-agent` issues. 2. Take the first unchecked task.
