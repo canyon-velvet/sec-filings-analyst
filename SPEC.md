@@ -9,7 +9,7 @@ Quality is proven by evals on FinanceBench. Portfolio project for AI-engineer ro
 
 ## Stack
 Python 3.12 + uv · FastAPI (SSE) · Postgres + pgvector (Docker, :5433) + Postgres FTS · pypdfium2 (PDF; HTML parser TBD in week 4) ·
-OpenAI (text-embedding-3-small, pinned chat snapshot) · local cross-encoder reranker ·
+OpenAI (text-embedding-3-small, gpt-5.4-mini-2026-03-17 answers) · local cross-encoder reranker ·
 Vite + React + TS · no LangChain/LlamaIndex
 
 ## Evaluation
@@ -31,7 +31,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - [x] Keyword search + hybrid RRF: dev Hit@5 0.10 (BM25), 0.26 (hybrid) vs dense 0.40 (#28, #29)
 - [x] Reranker: dev Hit@5 0.32 (50 candidates), 0.30 (100) vs dense 0.40 (#30)
 - [x] Metadata filters + contextual headers: dev Hit@5 0.60 with oracle filters (an upper bound), 0.54 with headers, vs dense 0.40 (#31, #32)
-- [ ] Cited Answers + answer evals (#33–#36)
+- [ ] Cited Answers + answer evals (#33 done: Answerer with inline Citations; #34–#36)
 - [ ] Judge validation + test-Split report (#37, #38)
 ### Week 3: agent tools (search, calculate) + loop · follow-ups · /chat SSE · chat UI (citations, agent-steps panel) · agent evals
 ### Week 4: EDGAR on-demand ingestion (ticker + form + year) · HTML parsing · section-based citations · fetch-filing agent tool
@@ -70,6 +70,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-23 · Reranker: local cross-encoder ms-marco-MiniLM-L6-v2 (Apache-2.0, pinned) on ONNX Runtime, CPU; libraries in a `rerank` group CI skips · torch has no Intel-Mac wheels; see docs/adr/0001. Both rerank runs lose to plain dense on dev, so `dense-baseline` stays the default Searcher
 - 2026-10-24 · Filter (company, Doc type, Fiscal year; each optional) applied before the top-k cut: dense in its SQL, keyword ranks only the Chunks SQL matches; hybrid and reranking pass it on · cutting first would leave few Chunks. Oracle filters lift dev Hit@5 to 0.60 (dense 0.40): half of dense's top-5 Pages are other Documents', so the week-3 agent should filter
 - 2026-10-25 · Contextual header `{company} {doc_type} FY{fiscal_year}, page {page}` embedded and keyword-indexed with each Chunk, not stored in its text; no LLM · ≈ $0.007 of tokens vs hundreds of dollars for LLM-written context (docs/adr/0002); dev Hit@5 0.54 vs 0.40, so dense on the headered corpus (`dense-headers`) is now the default Searcher
+- 2026-10-25 · Answerer: gpt-5.4-mini-2026-03-17 (Chat Completions, temperature 0, reasoning off) answers from the Chunks it is given, numbered with their Contextual headers; inline [n] markers become Citations, numbers matching no Chunk are dropped and counted · newest dated mini snapshot (gpt-4.1-mini is deprecated, gpt-6 names have no dated snapshot); markers carry over to the chat UI; no retrieval inside, so the agent reuses it
 
 ## Open questions
 - None
@@ -78,10 +79,8 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-14 · Repo bootstrapped; README (problem + planned approach)
 - 2026-10-15 · Scope widened to any company via EDGAR; week-1 spec published as issue #2
 - 2026-10-15 · uv skeleton, CI (lint + unit tests), ruff lint hook; push gate hook (no main, reviewed HEAD, no merged-PR branches); `env.example` rename (#4)
-- 2026-10-15 · Postgres + pgvector (Docker :5433), `make db-up` / `make db-reset`, documents + chunks schema (#5)
-- 2026-10-15 · Tracer bullet: fixture PDF → pypdfium2 Pages → fake Embedder → Postgres → `Retriever.search`; GLOSSARY.md (#6)
-- 2026-10-16 · Page-bounded chunking, 512 tokens with 64 overlap (cl100k_base); text-less PDFs refused (#7)
-- 2026-10-16 · Retrieval scoring: `score()` → Hit@1/5/10, Recall@10, MRR@10 per Question, per type, overall (#8)
+- 2026-10-15 · Postgres + pgvector (Docker :5433), `make db-up` / `make db-reset`, documents + chunks schema (#5); tracer bullet: fixture PDF → pypdfium2 Pages → fake Embedder → Postgres → `Retriever.search`; GLOSSARY.md (#6)
+- 2026-10-16 · Page-bounded chunking, 512 tokens with 64 overlap (cl100k_base); text-less PDFs refused (#7); retrieval scoring: `score()` → Hit@1/5/10, Recall@10, MRR@10 per Question, per type, overall (#8)
 - 2026-10-16 · `make data`: FinanceBench Questions (Doc types normalized, e.g. 10k → 10-K) + 84 PDFs, pinned; `make split`: `eval/splits/financebench_v1.json`, 50 dev (17/17/16 by type) / 100 test, seed 2026 (#9)
 - 2026-10-19 · Evidence pages aligned to 1-based Pages; local check on 20 sampled Questions vs FinanceBench's full-page text (#10)
 - 2026-10-19 · `OpenAIEmbedder` (text-embedding-3-small, batches of 256, injected client; fake client for tests); `make ingest`: cost prompt before any API call, resumable; 84 Documents, 25,854 Chunks, 10.5M tokens (≈ $0.21) stored; Doc type CHECK (#11)
@@ -94,6 +93,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - 2026-10-23 · `dense-rerank-50` / `-100` on dev: Hit@5 0.32 / 0.30 · MRR@10 0.21 / 0.20, ~10 / 15 s per Question; 5 / 4 gained, 9 / 9 lost vs dense; only ~1% of text cut at 512 tokens (10% sample of Chunks) (#30)
 - 2026-10-24 · `dense-oracle-filter` on dev, an upper bound: Hit@5 0.60 · MRR@10 0.38 (dense 0.40 · 0.24); 10 Questions gained, 0 lost; 123 of dense's 250 top-5 Pages are from other Documents (#31)
 - 2026-10-25 · Re-ingest #2 with Contextual headers (10.8M tokens, ≈ $0.22). Dev Hit@5 · MRR@10: `dense-headers` 0.54 · 0.31 (9 Questions gained, 2 lost vs dense), `hybrid-rrf-headers` 0.46 · 0.32 (best Hit@1, 0.24), `keyword-bm25-headers` 0.20 · 0.15; dense's top-5 Pages from other Documents 123 → 105 (#32)
+- 2026-10-25 · `OpenAIAnswerer` (Question + Chunks → Answer with Citations) and `FakeAnswerer`; `make check-answer`: one numeric dev Question answered with FinanceBench's figure, citing its Evidence page, for under a cent (#33)
 
 ## How to resume
 1. Read this file, `git log --oneline -20` and the open `ready-for-agent` issues. 2. Take the first unchecked task.

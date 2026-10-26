@@ -33,4 +33,8 @@ select = ["E", "F", "I", "B", "UP"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["tests"]  # for `from fakes...`
-markers = ["integration: needs local services (Postgres) or data (make data); excluded from CI"]
+addopts = "-m 'not live'"  # a later -m, as in make check-answer, replaces it
+markers = [
+    "integration: needs local services (Postgres) or data (make data); excluded from CI",
+    "live: calls the real OpenAI API, so costs money; only `make check-answer` runs it",
+]
