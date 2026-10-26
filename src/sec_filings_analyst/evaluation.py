@@ -247,8 +247,10 @@ def _answer_table(run_files: list[Path]) -> str:
     for run in runs:
         m = AnswerMetrics(**run["overall"])
         model = run["config"]["answer_model"]
-        numeric = "–" if m.numeric_accuracy is None else _fmt(m.numeric_accuracy)
-        cells = [model, _fmt(m.citation_hit_rate), f"{numeric} of {m.numeric_n}"]
+        numeric = (
+            "–" if m.numeric_accuracy is None else f"{_fmt(m.numeric_accuracy)} of {m.numeric_n}"
+        )
+        cells = [model, _fmt(m.citation_hit_rate), numeric]
         cells += [str(m.invalid_citations), str(m.n)]
         lines.append(_row([run["experiment"], run["split"], *cells]))
     return "\n".join(lines) + "\n"

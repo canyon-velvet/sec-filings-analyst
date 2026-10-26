@@ -10,9 +10,11 @@ from sec_filings_analyst.scoring import Page
 
 TOLERANCE = 0.01  # relative
 SCALES = {None: 1, "%": 1, "thousand": 1e3, "million": 1e6, "billion": 1e9}
-# A number with its commas and an optional scale: "1,577", "65.4%", "1.58 billion"
+# A number with its commas and an optional scale: "1,577", "65.4%", "1.58 billion"; not part of a
+# word or a Doc type ("FY2017", "Q3", "10-K")
 _NUMBER = re.compile(
-    r"(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?\s*(%|thousand|million|billion)?", re.IGNORECASE
+    r"(?<![\w.])(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?(?!\d|-[a-z])\s*(%|thousand|million|billion)?",
+    re.IGNORECASE,
 )
 _GOLD = re.compile(rf"-?\$?-?{_NUMBER.pattern}", re.IGNORECASE)  # the whole answer, e.g. "-$0.40"
 _MARKER = re.compile(r"\[\d+(?:\s*,\s*\d+)*\]")
@@ -70,7 +72,11 @@ def numeric_match(gold: str, answer: str) -> bool | None:
         return None
     expected = _value(match)
     scales = [1.0] if match[3] else [1000.0**k for k in range(-3, 4)]
-    numbers = [_value(m) for m in _NUMBER.finditer(_MARKER.sub("", answer))]
+    numbers = []
+    for number in _NUMBER.finditer(_MARKER.sub("", answer)):
+        numbers.append(_value(number))
+        if number[3] == "%":  # also a ratio: "1%" states FinanceBench's "0.01"
+            numbers.append(_value(number) / 100)
     return any(abs(n - expected * s) <= TOLERANCE * expected * s for n in numbers for s in scales)
 
 

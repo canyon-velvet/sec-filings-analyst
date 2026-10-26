@@ -48,3 +48,10 @@ def test_a_number_matches_within_1_percent_and_markers_and_percents_are_never_re
 def test_a_financebench_answer_that_isn_t_a_single_number_isn_t_checked():
     assert numeric_match("Yes. It decreased.", "Yes, it decreased by 3% [1].") is None
     assert numeric_match("$400,000,000 increase.", "It rose $400 million [2].") is None
+
+
+def test_numbers_in_doc_types_and_fiscal_years_don_t_count_and_a_percent_is_also_a_ratio():
+    assert not numeric_match("0.01", "Coca-Cola's FY2017 10-K and Q3 10-Q don't give it [1].")
+    assert numeric_match("$1577.00", "Capex was $1,577M [1].")
+    assert numeric_match("0.01", "Return on assets was 1% [2].")
+    assert numeric_match("0.8", "The payout ratio was 80%.")
