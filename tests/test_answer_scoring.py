@@ -7,13 +7,29 @@ MMM, AMCOR = "3M_2018_10K", "AMCOR_2022_8K"
 def test_answers_score_citation_hits_invalid_citations_and_the_numeric_check_of_numeric_questions():
     answers = {
         "q1": Answered(
-            "metrics-generated", [Page(MMM, 5), Page(MMM, 60)], 0, {Page(MMM, 60)}, True
+            "metrics-generated",
+            [Page(MMM, 5), Page(MMM, 60)],
+            0,
+            {Page(MMM, 60)},
+            True,
+            "correct",
+            True,
+            0,
         ),
         # Page 60 of another Document, and another Page of the right one: both misses
         "q2": Answered(
-            "metrics-generated", [Page(AMCOR, 60), Page(MMM, 61)], 1, {Page(MMM, 60)}, False
+            "metrics-generated",
+            [Page(AMCOR, 60), Page(MMM, 61)],
+            1,
+            {Page(MMM, 60)},
+            False,
+            "incorrect",
+            False,
+            0,
         ),
-        "q3": Answered("novel-generated", [], 2, {Page(AMCOR, 3)}, None),  # cites nothing valid
+        "q3": Answered(
+            "novel-generated", [], 2, {Page(AMCOR, 3)}, None, "refused", None, 0
+        ),  # cites nothing valid
     }
 
     scores = score_answers(answers)
