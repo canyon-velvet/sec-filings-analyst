@@ -10,8 +10,8 @@ test:
 test-integration:
 	uv run pytest -m "integration and not live"
 
-# Answers one real dev Question with real Chunks via OpenAI, about half a cent (needs make data,
-# the ingested corpus and OPENAI_API_KEY in .env); prints the Answer.
+# Answers and judges one real dev Question with real Chunks via OpenAI, about two cents (needs
+# make data, the ingested corpus and OPENAI_API_KEY in .env); prints the Answer and verdicts.
 check-answer:
 	uv run --env-file .env pytest -m live -s
 

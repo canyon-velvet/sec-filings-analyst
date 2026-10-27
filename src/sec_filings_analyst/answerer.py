@@ -52,9 +52,7 @@ class OpenAIAnswerer:
         self._client = client
 
     def answer(self, question: str, chunks: list[Chunk]) -> Answer:
-        excerpts = "\n\n".join(
-            f"[{n}] {contextual_header(chunk)}\n{chunk.text}" for n, chunk in enumerate(chunks, 1)
-        )
+        excerpts = "\n\n".join(excerpt(n, chunk) for n, chunk in enumerate(chunks, 1))
         response = self._client.chat.completions.create(
             model=ANSWER_MODEL,
             temperature=0,  # the API accepts it with reasoning off, as make check-answer shows
@@ -67,6 +65,11 @@ class OpenAIAnswerer:
         )
         # None when the model refuses: an Answer citing nothing, not a crash mid-run
         return cite(response.choices[0].message.content or "", chunks)
+
+
+def excerpt(number: int, chunk: Chunk) -> str:
+    """A Chunk as a prompt shows it, under its marker number."""
+    return f"[{number}] {contextual_header(chunk)}\n{chunk.text}"
 
 
 def cite(text: str, chunks: list[Chunk]) -> Answer:

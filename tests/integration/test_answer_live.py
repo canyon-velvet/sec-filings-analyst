@@ -1,4 +1,4 @@
-"""A local check against the real OpenAI API, about half a cent: `make check-answer`. Neither
+"""A local check against the real OpenAI API, about two cents: `make check-answer`. Neither
 `make test` nor `make test-integration` runs it."""
 
 import os
@@ -12,6 +12,7 @@ from sec_filings_analyst.answerer import OpenAIAnswerer
 from sec_filings_analyst.embedder import OpenAIEmbedder
 from sec_filings_analyst.experiments import build_experiment
 from sec_filings_analyst.financebench import load_questions
+from sec_filings_analyst.judge import OpenAIJudge
 
 JSONL = Path(__file__).parents[2] / "data" / "financebench" / "financebench_merged.jsonl"
 QUESTION_ID = "financebench_id_03282"  # dev, a number; dense-headers ranks its Evidence page first
@@ -24,7 +25,7 @@ pytestmark = [
 ]
 
 
-def test_answers_a_dev_question_from_dense_headers_chunks_citing_its_evidence_page():
+def test_answers_a_dev_question_citing_its_evidence_page_and_the_judge_grades_it_correct():
     (question,) = [q for q in load_questions(JSONL) if q.id == QUESTION_ID]
     client = openai.OpenAI()
     with psycopg.connect(os.environ["DATABASE_URL"], autocommit=True) as conn:
@@ -37,3 +38,8 @@ def test_answers_a_dev_question_from_dense_headers_chunks_citing_its_evidence_pa
     assert answer.invalid_citations == 0
     cited = {(c.chunk.document.name, c.chunk.page) for c in answer.citations}
     assert cited & {(question.document.name, page) for page in question.evidence_pages}
+    judge = OpenAIJudge(client)
+    correctness = judge.correctness(question.text, question.answer, answer.text)
+    faithfulness = judge.faithfulness(answer)
+    print(f"Judge: {correctness}\n       {faithfulness}")
+    assert (correctness.label, faithfulness.label) == ("correct", "supported")
