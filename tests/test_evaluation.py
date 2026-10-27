@@ -150,19 +150,18 @@ def test_an_answer_run_commits_citations_and_metrics_but_keeps_answer_text_local
     }
     assert (run["commit"], run["corpus"]) == ("abc123", {"documents": 2, "chunks": 5})
     assert run["overall"] == {
+        "accuracy": 1 / 3,
+        "refusal_rate": 1 / 3,
+        "faithfulness_rate": 0.5,  # of the two non-refusals
+        "disagreement_rate": 0.0,  # only 00001's answer is a number; Judge and check agree
         "citation_hit_rate": 2 / 3,
         "invalid_citations": 1,
-        "numeric_accuracy": 1.0,  # only 00001's answer is a number
+        "unjudged": 0,
+        "numeric_accuracy": 1.0,
         "numeric_n": 1,
         "n": 3,
     }
-    assert run["by_type"]["domain-relevant"] == {
-        "citation_hit_rate": 0.0,
-        "invalid_citations": 1,
-        "numeric_accuracy": None,
-        "numeric_n": 0,
-        "n": 1,
-    }
+    assert run["by_type"]["domain-relevant"]["refusal_rate"] == 1.0
     assert run["questions"]["financebench_id_00001"]["numeric_match"] is True
     assert run["questions"]["financebench_id_00003"] == {
         "question_type": "novel-generated",
@@ -187,7 +186,8 @@ def test_an_answer_run_commits_citations_and_metrics_but_keeps_answer_text_local
     }
     results = (tmp_path / "RESULTS.md").read_text()
     assert results.startswith(RESULTS_WITH_BASELINE)  # the retrieval tables stay
-    assert "| dense-baseline | dev | fake-answerer | 0.67 | 1.00 of 1 | 1 | 3 |" in results
+    row = "| dense-baseline | dev | fake-answerer | fake-judge | 0.33 | 0.33 | 1.00 of 1 | 0.00 |"
+    assert row + " 0.50 | 0.67 | 1 | 0 | 3 |" in results
 
 
 def test_an_empty_answer_is_incorrect_and_one_citing_nothing_unsupported_without_the_judge(

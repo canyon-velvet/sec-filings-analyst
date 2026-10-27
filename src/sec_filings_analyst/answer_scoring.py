@@ -1,8 +1,9 @@
-"""Answer scoring: whether each Answer cites an Evidence page, how many of its Citations
-matched no Chunk it was given, and, for numeric Questions, whether it states FinanceBench's
-number."""
+"""Answer scoring: the Judge's verdicts, whether each Answer cites an Evidence page, how many of
+its Citations matched no Chunk it was given, and, for numeric Questions, whether it states
+FinanceBench's number and whether the Judge agrees."""
 
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 from statistics import mean
 
@@ -36,8 +37,14 @@ class Answered:
 
 @dataclass(frozen=True)
 class AnswerMetrics:
+    accuracy: float  # share of Answers the Judge grades correct
+    refusal_rate: float  # share it grades refused, apart from incorrect
+    faithfulness_rate: float | None  # share of non-refusals supported by their Citations
+    disagreement_rate: float | None  # of numeric Answers graded correct or incorrect, the share
+    # where the Judge's grade and the numeric check differ
     citation_hit_rate: float  # share of Answers citing at least one Evidence page
     invalid_citations: int  # total over the Answers
+    unjudged: int  # Judge replies without a verdict, in total
     numeric_accuracy: float | None  # share of numeric Questions matched; None without any
     numeric_n: int  # numeric Questions
     n: int
@@ -54,15 +61,30 @@ def score_answers(answers: dict[str, Answered]) -> AnswerScores:
     hits = {qid: bool(set(a.cited) & a.evidence) for qid, a in answers.items()}
 
     def aggregate(qids: list[str]) -> AnswerMetrics:
-        invalid = sum(answers[q].invalid_citations for q in qids)
-        numeric = [answers[q].numeric_match for q in qids if answers[q].numeric_match is not None]
-        accuracy = mean(map(float, numeric)) if numeric else None
-        hit_rate = mean(float(hits[q]) for q in qids)
-        return AnswerMetrics(hit_rate, invalid, accuracy, len(numeric), len(qids))
+        numeric = [answers[q] for q in qids if answers[q].numeric_match is not None]
+        graded = [a for a in numeric if a.correctness in ("correct", "incorrect")]
+        disagree = [(a.correctness == "correct") != a.numeric_match for a in graded]
+        supported = [answers[q].supported for q in qids if answers[q].supported is not None]
+        return AnswerMetrics(
+            accuracy=_share(answers[q].correctness == "correct" for q in qids),
+            refusal_rate=_share(answers[q].correctness == "refused" for q in qids),
+            faithfulness_rate=_share(supported) if supported else None,
+            disagreement_rate=_share(disagree) if graded else None,
+            citation_hit_rate=_share(hits[q] for q in qids),
+            invalid_citations=sum(answers[q].invalid_citations for q in qids),
+            unjudged=sum(answers[q].unjudged for q in qids),
+            numeric_accuracy=_share(a.numeric_match for a in numeric) if numeric else None,
+            numeric_n=len(numeric),
+            n=len(qids),
+        )
 
     types = sorted({a.question_type for a in answers.values()})
     by_type = {t: aggregate([q for q, a in answers.items() if a.question_type == t]) for t in types}
     return AnswerScores(hits, aggregate(list(answers)), by_type)
+
+
+def _share(flags: Iterable[bool]) -> float:
+    return mean(float(flag) for flag in flags)
 
 
 def numeric_match(gold: str, answer: str) -> bool | None:

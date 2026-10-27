@@ -4,45 +4,89 @@ from sec_filings_analyst.scoring import Page
 MMM, AMCOR = "3M_2018_10K", "AMCOR_2022_8K"
 
 
-def test_answers_score_citation_hits_invalid_citations_and_the_numeric_check_of_numeric_questions():
+def answered(question_type, correctness, supported, numeric=None, invalid=0, unjudged=0, **pages):
+    cited, evidence = pages.get("cited", []), pages.get("evidence", set())
+    return Answered(
+        question_type=question_type,
+        cited=cited,
+        invalid_citations=invalid,
+        evidence=evidence,
+        numeric_match=numeric,
+        correctness=correctness,
+        supported=supported,
+        unjudged=unjudged,
+    )
+
+
+def test_answers_score_the_judge_s_verdicts_citation_hits_and_the_numeric_check_by_type():
     answers = {
-        "q1": Answered(
+        "q1": answered(
             "metrics-generated",
-            [Page(MMM, 5), Page(MMM, 60)],
-            0,
-            {Page(MMM, 60)},
-            True,
             "correct",
             True,
-            0,
+            numeric=True,
+            cited=[Page(MMM, 5), Page(MMM, 60)],
+            evidence={Page(MMM, 60)},
         ),
         # Page 60 of another Document, and another Page of the right one: both misses
-        "q2": Answered(
+        "q2": answered(
             "metrics-generated",
-            [Page(AMCOR, 60), Page(MMM, 61)],
-            1,
-            {Page(MMM, 60)},
-            False,
             "incorrect",
             False,
-            0,
+            numeric=False,
+            invalid=1,
+            cited=[Page(AMCOR, 60), Page(MMM, 61)],
+            evidence={Page(MMM, 60)},
         ),
-        "q3": Answered(
-            "novel-generated", [], 2, {Page(AMCOR, 3)}, None, "refused", None, 0
-        ),  # cites nothing valid
+        "q3": answered("novel-generated", "refused", None, invalid=2, evidence={Page(AMCOR, 3)}),
     }
 
     scores = score_answers(answers)
 
     assert scores.citation_hits == {"q1": True, "q2": False, "q3": False}
-    # the numeric check counts only the numeric Questions, q1 and q2
     assert scores.overall == AnswerMetrics(
-        citation_hit_rate=1 / 3, invalid_citations=3, numeric_accuracy=0.5, numeric_n=2, n=3
+        accuracy=1 / 3,
+        refusal_rate=1 / 3,
+        faithfulness_rate=0.5,  # of q1 and q2: a refusal isn't checked for support
+        disagreement_rate=0.0,
+        citation_hit_rate=1 / 3,
+        invalid_citations=3,
+        unjudged=0,
+        numeric_accuracy=0.5,  # of q1 and q2, the numeric Questions
+        numeric_n=2,
+        n=3,
     )
-    assert scores.by_type == {
-        "metrics-generated": AnswerMetrics(0.5, 1, numeric_accuracy=0.5, numeric_n=2, n=2),
-        "novel-generated": AnswerMetrics(0.0, 2, numeric_accuracy=None, numeric_n=0, n=1),
+    assert scores.by_type["novel-generated"] == AnswerMetrics(
+        accuracy=0.0,
+        refusal_rate=1.0,
+        faithfulness_rate=None,
+        disagreement_rate=None,
+        citation_hit_rate=0.0,
+        invalid_citations=2,
+        unjudged=0,
+        numeric_accuracy=None,
+        numeric_n=0,
+        n=1,
+    )
+    assert scores.by_type["metrics-generated"].accuracy == 0.5
+
+
+def test_disagreement_compares_only_what_the_judge_graded_and_unjudged_verdicts_are_counted():
+    answers = {
+        "q1": answered("metrics-generated", "correct", True, numeric=True),
+        # the Judge says incorrect, but the Answer states FinanceBench's number: a disagreement
+        "q2": answered("metrics-generated", "incorrect", False, numeric=True),
+        # a refusal and an unjudged Answer aren't compared with the check
+        "q3": answered("metrics-generated", "refused", None, numeric=True),
+        "q4": answered("metrics-generated", "unjudged", None, numeric=False, unjudged=2),
+        "q5": answered("novel-generated", "correct", False),
     }
+
+    overall = score_answers(answers).overall
+
+    assert (overall.accuracy, overall.refusal_rate, overall.unjudged) == (0.4, 0.2, 2)
+    assert overall.faithfulness_rate == 1 / 3  # of q1, q2 and q5
+    assert (overall.disagreement_rate, overall.numeric_accuracy) == (0.5, 0.75)
 
 
 def test_dollars_percents_commas_and_scale_words_parse_and_unitless_gold_matches_at_any_scale():
