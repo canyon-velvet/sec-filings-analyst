@@ -1,6 +1,12 @@
 import pytest
 
-from sec_filings_analyst.hand_grading import SheetItem, read_grades, sheet
+from sec_filings_analyst.hand_grading import (
+    Agreement,
+    SheetItem,
+    judge_agreement,
+    read_grades,
+    sheet,
+)
 from sec_filings_analyst.scoring import Page
 
 ITEMS = [
@@ -47,3 +53,22 @@ def test_a_sheet_without_items_or_with_an_item_twice_is_refused():
         read_grades(
             text + text[text.index("## 1.") : text.index("## 2.")].replace("## 1.", "## 3.")
         )
+
+
+def test_agreement_is_the_share_of_hand_grades_the_judge_matched_overall_and_by_type():
+    run_questions = {  # as an answer run commits them
+        "q1": {"question_type": "metrics-generated", "correctness": "correct"},
+        "q2": {"question_type": "metrics-generated", "correctness": "incorrect"},
+        "q3": {"question_type": "novel-generated", "correctness": "refused"},
+        "q4": {"question_type": "novel-generated", "correctness": "correct"},  # not hand-graded
+    }
+    grades = {"q1": "correct", "q2": "correct", "q3": "refused"}
+
+    agreement = judge_agreement(grades, run_questions)
+
+    assert agreement == Agreement(
+        rate=2 / 3,
+        by_type={"metrics-generated": 0.5, "novel-generated": 1.0},
+        disagreements=["q2"],
+        n=3,
+    )

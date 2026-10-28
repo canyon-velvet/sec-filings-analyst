@@ -6,7 +6,7 @@ from fakes.answerer import FakeAnswerer
 from fakes.judge import FakeJudge
 from fakes.retriever import FakeRetriever
 
-from sec_filings_analyst.evaluation import run_answer_eval, run_eval
+from sec_filings_analyst.evaluation import run_answer_eval, run_eval, write_results
 from sec_filings_analyst.experiments import ORACLE_FILTER, Experiment
 from sec_filings_analyst.financebench import load_questions
 from sec_filings_analyst.retriever import Filter
@@ -267,3 +267,28 @@ Doc type and Fiscal year, which no user knows: an upper bound, not a result.
 |---|---|---|---|---|
 | dense-baseline | dev | 0.00 | 1.00 | 1.00 |
 """
+
+
+def test_hand_grades_of_an_answer_run_add_its_judge_agreement_to_the_results(tmp_path):
+    run_answer_eval(
+        baseline(),
+        "dev",
+        QUESTIONS,
+        PROVENANCE,
+        FakeAnswerer(REPLIES),
+        FakeJudge(VERDICTS),
+        YES,
+        tmp_path,
+    )
+    # the Judge said correct for 00001 and refused for 00002
+    grades = {"financebench_id_00001": "correct", "financebench_id_00002": "incorrect"}
+    path = tmp_path / "hand_grades" / "dev" / "dense-baseline.json"
+    path.parent.mkdir(parents=True)
+    path.write_text(json.dumps(grades))
+
+    write_results(tmp_path)
+
+    results = (tmp_path / "RESULTS.md").read_text()
+    assert "| Answer run | Judge model | Hand-graded | Agreement | domain-relevant |" in results
+    row = "| dev/dense-baseline | fake-judge | 2 | 0.50 | 0.00 | 1.00 | financebench_id_00002 |"
+    assert row in results
