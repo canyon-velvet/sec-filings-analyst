@@ -43,9 +43,10 @@ ingest:
 eval:
 	uv run --group rerank --env-file .env python -m sec_filings_analyst.evaluation $(SPLIT) $(EXPERIMENT)
 
-# Answers each Question in a Split from the Experiment's top 10 Chunks, e.g. make answer-eval
-# SPLIT=dev EXPERIMENT=dense-headers: shows the cost ceiling and asks before calling OpenAI, then
-# saves eval/answer_runs/financebench_v1/$(SPLIT)/$(EXPERIMENT).json (never overwritten; no Answer
-# text) with the text in a gitignored .local.jsonl beside it, and regenerates eval/RESULTS.md.
+# Answers each Question in a Split from the Experiment's top 10 Chunks and has the Judge grade it,
+# e.g. make answer-eval SPLIT=dev EXPERIMENT=dense-headers: shows the cost ceiling and asks before
+# calling OpenAI, then saves eval/answer_runs/financebench_v1/$(SPLIT)/$(EXPERIMENT).json (never
+# overwritten; verdicts, no Answer text or Judge reasons) with those in a gitignored .local.jsonl
+# beside it, and regenerates eval/RESULTS.md.
 answer-eval:
 	uv run --group rerank --env-file .env python -m sec_filings_analyst.evaluation $(SPLIT) $(EXPERIMENT) answers

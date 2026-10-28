@@ -1,5 +1,5 @@
 """Eval runners: every Question in a Split through an Experiment's Searcher (and, for answer runs,
-an Answerer) and scoring, saved as a run."""
+an Answerer and the Judge) and scoring, saved as a run."""
 
 import json
 import os
@@ -7,18 +7,16 @@ import secrets
 from collections.abc import Callable
 from dataclasses import asdict
 from pathlib import Path
+from types import ModuleType
 
+from sec_filings_analyst import answerer as answering
+from sec_filings_analyst import judge as judging
 from sec_filings_analyst.answer_scoring import Answered, AnswerMetrics, numeric_match, score_answers
-from sec_filings_analyst.answerer import (
-    INPUT_PRICE_PER_MILLION,
-    INSTRUCTIONS,
-    MAX_ANSWER_TOKENS,
-    OUTPUT_PRICE_PER_MILLION,
-    Answerer,
-)
+from sec_filings_analyst.answerer import Answer, Answerer
 from sec_filings_analyst.chunking import CHUNK_TOKENS
 from sec_filings_analyst.experiments import Experiment
 from sec_filings_analyst.financebench import Question
+from sec_filings_analyst.judge import UNJUDGED, Judge, Verdict
 from sec_filings_analyst.retriever import Filter, SearchResult
 from sec_filings_analyst.scoring import Metrics, Page, Retrieval, score
 
@@ -26,6 +24,7 @@ FETCH_K = 50  # Chunks per Question: several can share a Page, and scoring needs
 TOP_PAGES = 5  # retrieved Pages kept per Question, for failure analysis
 ANSWER_CHUNKS = 10  # Chunks the Answerer gets per Question
 EXCERPT_OVERHEAD = 40  # tokens per Chunk in the prompt beyond its text: marker, header, newlines
+_SUPPORTED = {"supported": True, "not supported": False}  # UNJUDGED: None
 
 
 def run_eval(
@@ -75,18 +74,20 @@ def run_answer_eval(
     questions: list[Question],
     provenance: dict,
     answerer: Answerer,
+    judge: Judge,
     confirm: Callable[[str], bool],
     eval_dir: Path,
 ) -> None:
-    """Answers each Question from the Experiment's top ANSWER_CHUNKS Chunks. Saves
-    eval_dir/answer_runs/<split>/<experiment name>.json without any Answer text, which can restate
-    FinanceBench's (CC-BY-NC), and the text beside it in a gitignored .local.jsonl; regenerates
-    eval_dir/RESULTS.md. Refuses names and corpora as run_eval does, then asks confirm() about
-    the cost ceiling, all before any call; a no stops it."""
+    """Answers each Question from the Experiment's top ANSWER_CHUNKS Chunks and has the Judge
+    grade it. Saves eval_dir/answer_runs/<split>/<experiment name>.json with the verdicts but no
+    Answer text or Judge reasons, which can restate FinanceBench's (CC-BY-NC), and those beside it
+    in a gitignored .local.jsonl; regenerates eval_dir/RESULTS.md. Refuses names and corpora as
+    run_eval does, then asks confirm() about the cost ceiling, all before any call; a no stops
+    it."""
     path = _new_run_path(experiment, eval_dir / "answer_runs" / split, provenance)
-    if not confirm(_cost_ceiling(questions, answerer.model)):
+    if not confirm(_cost_ceiling(questions, answerer.model, judge.model)):
         return
-    answered, texts = {}, {}
+    answered, local = {}, []
     for question in questions:
         chunks = [r.chunk for r in _search(experiment, question, ANSWER_CHUNKS)]
         answer = answerer.answer(question.text, chunks)
@@ -96,16 +97,36 @@ def run_answer_eval(
         )
         invalid = answer.invalid_citations
         matched = numeric_match(question.answer, answer.text)
+        correctness, faithfulness = _judge(judge, question, answer)
+        verdicts = [v.label for v in (correctness, faithfulness) if v]
         answered[question.id] = Answered(
-            question.question_type, cited, invalid, _evidence(question), matched
+            question_type=question.question_type,
+            cited=cited,
+            invalid_citations=invalid,
+            evidence=_evidence(question),
+            numeric_match=matched,
+            correctness=correctness.label,
+            supported=None if not faithfulness else _SUPPORTED.get(faithfulness.label),
+            unjudged=verdicts.count(UNJUDGED),
         )
-        texts[question.id] = answer.text
+        local.append(
+            {
+                "id": question.id,
+                "answer": answer.text,
+                "correctness_reason": correctness.reason,
+                "faithfulness_reason": faithfulness and faithfulness.reason,
+            }
+        )
     scores = score_answers(answered)
     run = {
         "experiment": experiment.name,
         "split": split,
         "config": experiment.settings
-        | {"answer_model": answerer.model, "answer_chunks": ANSWER_CHUNKS},
+        | {
+            "answer_model": answerer.model,
+            "answer_chunks": ANSWER_CHUNKS,
+            "judge_model": judge.model,
+        },
         "commit": provenance["commit"],
         "corpus": provenance["corpus"],
         "overall": asdict(scores.overall),
@@ -118,29 +139,64 @@ def run_answer_eval(
                 "invalid_citations": a.invalid_citations,
                 "citation_hit": scores.citation_hits[qid],
                 "numeric_match": a.numeric_match,
+                "correctness": a.correctness,
+                "supported": a.supported,
+                "unjudged": a.unjudged,
             }
             for qid, a in answered.items()
         },
     }
-    lines = [json.dumps({"id": qid, "answer": text}) + "\n" for qid, text in texts.items()]
+    lines = [json.dumps(row) + "\n" for row in local]
     path.parent.mkdir(parents=True, exist_ok=True)
-    # The text first: a run file never exists without its Answers
+    # The text first: a run file never exists without its Answers and reasons
     _write(path.with_suffix(".local.jsonl"), "".join(lines), replace=True)
     _write(path, json.dumps(run, indent=2) + "\n", replace=False)
     _write_results(eval_dir)
 
 
-def _cost_ceiling(questions: list[Question], model: str) -> str:
-    """At most what answering costs, known before retrieval: each Chunk at its CHUNK_TOKENS cap,
-    the instructions and Question at one token per character, each Answer at its output cap."""
-    per_chunk = CHUNK_TOKENS + EXCERPT_OVERHEAD
-    tokens_in = sum(len(INSTRUCTIONS) + len(q.text) + ANSWER_CHUNKS * per_chunk for q in questions)
-    tokens_out = len(questions) * MAX_ANSWER_TOKENS
-    cost = (tokens_in * INPUT_PRICE_PER_MILLION + tokens_out * OUTPUT_PRICE_PER_MILLION) / 1e6
-    return (
-        f"Answer {len(questions)} Questions with {model}: at most {tokens_in:,} input and"
-        f" {tokens_out:,} output tokens, ${cost:.2f}"
+def _judge(judge: Judge, question: Question, answer: Answer) -> tuple[Verdict, Verdict | None]:
+    """The correctness and faithfulness verdicts; no faithfulness one for a refusal or an empty
+    Answer, which claim nothing. Without the Judge: an empty Answer is incorrect, and one citing
+    nothing can't be supported."""
+    if not answer.text.strip():
+        return Verdict("incorrect", "The Answer is empty."), None
+    correctness = judge.correctness(question.text, question.answer, answer.text)
+    if correctness.label == "refused":
+        return correctness, None
+    if not answer.citations:
+        return correctness, Verdict("not supported", "The Answer cites no excerpt.")
+    return correctness, judge.faithfulness(answer)
+
+
+def _cost_ceiling(questions: list[Question], answer_model: str, judge_model: str) -> str:
+    """At most what answering and judging cost, known before retrieval: each Chunk at its
+    CHUNK_TOKENS cap, instructions and FinanceBench text at one token per character, each Answer
+    and verdict at its output cap (reasoning is off, so there are no hidden reasoning tokens)."""
+    n, excerpts = len(questions), ANSWER_CHUNKS * (CHUNK_TOKENS + EXCERPT_OVERHEAD)
+    answer_in = sum(len(answering.INSTRUCTIONS) + len(q.text) + excerpts for q in questions)
+    answer_out = n * answering.MAX_ANSWER_TOKENS
+    graded = answering.MAX_ANSWER_TOKENS  # the Answer, in both of the Judge's prompts
+    judge_in = sum(
+        len(judging.CORRECTNESS_INSTRUCTIONS) + len(q.text) + len(q.answer) + graded
+        for q in questions
     )
+    judge_in += n * (len(judging.FAITHFULNESS_INSTRUCTIONS) + graded + excerpts)
+    judge_out = n * 2 * judging.MAX_JUDGE_TOKENS
+    answer_cost = _cost(answer_in, answer_out, answering)
+    judge_cost = _cost(judge_in, judge_out, judging)
+    return (
+        f"Answer {n} Questions with {answer_model} (at most {answer_in:,} input and"
+        f" {answer_out:,} output tokens, ${answer_cost:.2f}) and judge them with {judge_model}"
+        f" (at most {judge_in:,} input and {judge_out:,} output tokens, ${judge_cost:.2f}):"
+        f" ${answer_cost + judge_cost:.2f}"
+    )
+
+
+def _cost(tokens_in: int, tokens_out: int, prices: ModuleType) -> float:
+    """USD at a model module's INPUT_ and OUTPUT_PRICE_PER_MILLION."""
+    return (
+        tokens_in * prices.INPUT_PRICE_PER_MILLION + tokens_out * prices.OUTPUT_PRICE_PER_MILLION
+    ) / 1e6
 
 
 def _new_run_path(experiment: Experiment, folder: Path, provenance: dict) -> Path:
@@ -280,6 +336,7 @@ if __name__ == "__main__":
     from sec_filings_analyst.experiments import build_experiment
     from sec_filings_analyst.financebench import load_questions
     from sec_filings_analyst.ingest import describe_corpus
+    from sec_filings_analyst.judge import OpenAIJudge
 
     split_name, name, *mode = sys.argv[1:]  # e.g. dev dense-headers, then "answers" for answers
     split_file = Path("eval/splits/financebench_v1.json")
@@ -305,7 +362,9 @@ if __name__ == "__main__":
             def ask(summary: str) -> bool:
                 return input(f"{summary}. Go ahead? [y/N] ").strip().lower() == "y"
 
-            answerer = OpenAIAnswerer(client)
-            run_answer_eval(experiment, split, questions, provenance, answerer, ask, Path("eval"))
+            answerer, judge = OpenAIAnswerer(client), OpenAIJudge(client)
+            run_answer_eval(
+                experiment, split, questions, provenance, answerer, judge, ask, Path("eval")
+            )
         else:
             run_eval(experiment, split, questions, provenance, Path("eval"))

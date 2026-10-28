@@ -29,6 +29,9 @@ class Answered:
     invalid_citations: int
     evidence: set[Page]
     numeric_match: bool | None  # None: FinanceBench's answer isn't a single number
+    correctness: str  # the Judge's: correct, incorrect, refused, or unjudged
+    supported: bool | None  # the Judge's faithfulness verdict; None if refused, empty or unjudged
+    unjudged: int  # Judge replies without a verdict (0–2)
 
 
 @dataclass(frozen=True)

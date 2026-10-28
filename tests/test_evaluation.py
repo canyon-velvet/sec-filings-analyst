@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pytest
 from fakes.answerer import FakeAnswerer
+from fakes.judge import FakeJudge
 from fakes.retriever import FakeRetriever
 
 from sec_filings_analyst.evaluation import run_answer_eval, run_eval
@@ -122,19 +123,31 @@ REPLIES = {
     "Is 3M capital intensive?": "Not by its capex [3].",  # 2 Chunks came back: [3] is invalid
     "What did Amcor announce?": "A merger [1] [2].",  # 3M's Page 1 misses; AMCOR's Page 3 hits
 }
+VERDICTS = {  # by Answer text, markers checked: (correctness, faithfulness)
+    "Capex was $1.58 billion [1].": ("correct", "supported"),
+    "Not by its capex.": ("refused", "never asked: a refusal isn't checked for support"),
+    "A merger [1] [2].": ("incorrect", "not supported"),
+}
 
 
 def test_an_answer_run_commits_citations_and_metrics_but_keeps_answer_text_local(tmp_path):
-    retriever, answerer = FakeRetriever(HITS), FakeAnswerer(REPLIES)
+    retriever, answerer, judge = FakeRetriever(HITS), FakeAnswerer(REPLIES), FakeJudge(VERDICTS)
     run_eval(baseline(), "dev", QUESTIONS, PROVENANCE, tmp_path)
 
-    run_answer_eval(baseline(retriever), "dev", QUESTIONS, PROVENANCE, answerer, YES, tmp_path)
+    run_answer_eval(
+        baseline(retriever), "dev", QUESTIONS, PROVENANCE, answerer, judge, YES, tmp_path
+    )
 
     assert retriever.ks == [10, 10, 10]  # the top 10 Chunks go to the Answerer
     assert [len(chunks) for _, chunks in answerer.calls] == [3, 2, 2]
     committed = (tmp_path / "answer_runs" / "dev" / "dense-baseline.json").read_text()
     run = json.loads(committed)
-    assert run["config"] == {"answer_model": "fake-answerer", "answer_chunks": 10}
+    assert judge.faithfulness_calls == ["Capex was $1.58 billion [1].", "A merger [1] [2]."]
+    assert run["config"] == {
+        "answer_model": "fake-answerer",
+        "answer_chunks": 10,
+        "judge_model": "fake-judge",
+    }
     assert (run["commit"], run["corpus"]) == ("abc123", {"documents": 2, "chunks": 5})
     assert run["overall"] == {
         "citation_hit_rate": 2 / 3,
@@ -158,49 +171,81 @@ def test_an_answer_run_commits_citations_and_metrics_but_keeps_answer_text_local
         "invalid_citations": 0,
         "citation_hit": True,
         "numeric_match": None,
+        "correctness": "incorrect",
+        "supported": False,
+        "unjudged": 0,
     }
+    assert run["questions"]["financebench_id_00002"]["supported"] is None
     assert not any(reply.split(" [")[0] in committed for reply in REPLIES.values())
+    assert "by the fake" not in committed
     local = (tmp_path / "answer_runs" / "dev" / "dense-baseline.local.jsonl").read_text()
     assert json.loads(local.splitlines()[1]) == {
         "id": "financebench_id_00002",
         "answer": "Not by its capex.",
+        "correctness_reason": "refused, by the fake",
+        "faithfulness_reason": None,
     }
     results = (tmp_path / "RESULTS.md").read_text()
     assert results.startswith(RESULTS_WITH_BASELINE)  # the retrieval tables stay
     assert "| dense-baseline | dev | fake-answerer | 0.67 | 1.00 of 1 | 1 | 3 |" in results
 
 
+def test_an_empty_answer_is_incorrect_and_one_citing_nothing_unsupported_without_the_judge(
+    tmp_path,
+):
+    replies = REPLIES | {"What was 3M's FY2018 capital expenditure?": ""}
+    judge = FakeJudge(VERDICTS | {"Not by its capex.": ("incorrect", "never asked")})
+
+    run_answer_eval(
+        baseline(), "dev", QUESTIONS, PROVENANCE, FakeAnswerer(replies), judge, YES, tmp_path
+    )
+
+    assert judge.correctness_calls == ["Not by its capex.", "A merger [1] [2]."]
+    assert judge.faithfulness_calls == ["A merger [1] [2]."]
+    run = json.loads((tmp_path / "answer_runs" / "dev" / "dense-baseline.json").read_text())
+    verdicts = [(q["correctness"], q["supported"]) for q in run["questions"].values()]
+    # the empty Answer claims nothing, so it isn't unsupported either
+    assert verdicts == [("incorrect", None), ("incorrect", False), ("incorrect", False)]
+
+
 def test_an_answer_run_is_refused_before_any_call_for_a_reused_or_invalid_name(tmp_path):
-    run_answer_eval(baseline(), "dev", QUESTIONS, PROVENANCE, FakeAnswerer(REPLIES), YES, tmp_path)
+    first = FakeAnswerer(REPLIES), FakeJudge(VERDICTS)
+    run_answer_eval(baseline(), "dev", QUESTIONS, PROVENANCE, *first, YES, tmp_path)
     saved = {p: p.read_text() for p in tmp_path.rglob("*") if p.is_file()}
-    retriever, answerer = FakeRetriever(HITS), FakeAnswerer(REPLIES)
+    retriever, answerer, judge = FakeRetriever(HITS), FakeAnswerer(REPLIES), FakeJudge(VERDICTS)
 
     with pytest.raises(FileExistsError):
-        run_answer_eval(baseline(retriever), "dev", QUESTIONS, PROVENANCE, answerer, YES, tmp_path)
+        run_answer_eval(
+            baseline(retriever), "dev", QUESTIONS, PROVENANCE, answerer, judge, YES, tmp_path
+        )
     with pytest.raises(ValueError, match="week2/hybrid"):
         experiment = Experiment("week2/hybrid", {}, retriever)
-        run_answer_eval(experiment, "dev", QUESTIONS, PROVENANCE, answerer, YES, tmp_path)
+        run_answer_eval(experiment, "dev", QUESTIONS, PROVENANCE, answerer, judge, YES, tmp_path)
 
-    assert (retriever.ks, answerer.calls) == ([], [])
+    assert (retriever.ks, answerer.calls, judge.correctness_calls) == ([], [], [])
     assert {p: p.read_text() for p in saved} == saved
 
 
 def test_an_answer_run_asks_about_its_cost_ceiling_before_any_call_and_a_no_stops_it(tmp_path):
-    retriever, answerer = FakeRetriever(HITS), FakeAnswerer(REPLIES)
+    retriever, answerer, judge = FakeRetriever(HITS), FakeAnswerer(REPLIES), FakeJudge(VERDICTS)
     asked = []
 
     def decline(summary: str) -> bool:
         asked.append((summary, list(retriever.ks), list(answerer.calls)))
         return False
 
-    run_answer_eval(baseline(retriever), "dev", QUESTIONS, PROVENANCE, answerer, decline, tmp_path)
+    run_answer_eval(
+        baseline(retriever), "dev", QUESTIONS, PROVENANCE, answerer, judge, decline, tmp_path
+    )
 
     ((summary, ks_then, calls_then),) = asked
     assert (ks_then, calls_then) == ([], [])  # asked before any search or Answer
-    # Each Answer's output is capped at 1,000 tokens; input counts each Chunk at its 512 cap
+    # Each Answer's output is capped at 1,000 tokens, each verdict's at 300; input counts each
+    # Chunk at its 512 cap
     assert "Answer 3 Questions with fake-answerer" in summary
-    assert "3,000 output tokens" in summary and "$" in summary
-    assert (retriever.ks, answerer.calls) == ([], [])
+    assert "3,000 output tokens" in summary and "1,800 output tokens" in summary
+    assert "judge them with fake-judge" in summary and "$" in summary
+    assert (retriever.ks, answerer.calls, judge.correctness_calls) == ([], [], [])
     assert list(tmp_path.rglob("*")) == []
 
 
