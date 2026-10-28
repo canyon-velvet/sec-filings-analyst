@@ -57,6 +57,14 @@ _Avoid_: source, reference
 For a Question whose FinanceBench answer is a single number (a numeric Question), whether the Answer states that number within 1%; a rule in code that cross-checks the Judge.
 _Avoid_: exact match, numeric accuracy (that's the share of numeric Questions that pass)
 
+**Judge**:
+An LLM that grades each Answer twice: its correctness against FinanceBench's answer (correct, incorrect or refused) and its faithfulness to the Chunks it cites (supported or not supported).
+_Avoid_: grader, evaluator
+
+**Verdict**:
+One of the Judge's grades: a label and a one-sentence reason. Unjudged when the Judge's reply held no label. The reason can restate FinanceBench's answer, so it is never committed.
+_Avoid_: score, rating
+
 ### Evaluation
 
 **Question**:
