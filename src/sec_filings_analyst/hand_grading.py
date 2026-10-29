@@ -4,6 +4,7 @@ stays local; only the grades, by Question id, are committed."""
 
 import re
 from dataclasses import dataclass
+from statistics import mean
 
 from sec_filings_analyst.judge import CORRECTNESS
 from sec_filings_analyst.scoring import Page
@@ -21,6 +22,14 @@ class SheetItem:
     expected: str  # FinanceBench's answer
     answer: str
     cited: list[Page]
+
+
+@dataclass(frozen=True)
+class Agreement:
+    rate: float  # share of hand-graded Answers whose Judge correctness verdict is the same
+    by_type: dict[str, float]
+    disagreements: list[str]  # Question ids, sorted
+    n: int  # hand-graded Answers
 
 
 def sheet(answer_run: str, items: list[SheetItem]) -> str:
@@ -69,6 +78,19 @@ def read_grades(text: str) -> dict[str, str]:
     return grades
 
 
+def judge_agreement(grades: dict[str, str], run_questions: dict[str, dict]) -> Agreement:
+    """How often the Judge's correctness verdicts, as an answer run commits them per Question,
+    match the hand grades."""
+    agrees = {q: run_questions[q]["correctness"] == grade for q, grade in grades.items()}
+    types = sorted({run_questions[q]["question_type"] for q in grades})
+    by_type = {
+        t: mean(float(a) for q, a in agrees.items() if run_questions[q]["question_type"] == t)
+        for t in types
+    }
+    disagreements = sorted(q for q, a in agrees.items() if not a)
+    return Agreement(mean(map(float, agrees.values())), by_type, disagreements, len(grades))
+
+
 def _labels() -> str:
     return f"{', '.join(CORRECTNESS[:-1])} or {CORRECTNESS[-1]}"
 
@@ -78,10 +100,11 @@ if __name__ == "__main__":
     import sys
     from pathlib import Path
 
+    from sec_filings_analyst.evaluation import write_results
     from sec_filings_analyst.financebench import load_questions
     from sec_filings_analyst.split import SEED, make_split
 
-    command = sys.argv[1]  # sheet
+    command = sys.argv[1]  # sheet, then grades once the sheet is filled in
     answer_run = "financebench_v1/dev/dense-headers"
     run_file = Path("eval/answer_runs") / f"{answer_run}.json"
     sheet_file = Path("eval/hand_grades") / f"{answer_run}.sheet.local.md"
@@ -107,4 +130,11 @@ if __name__ == "__main__":
         sheet_file.parent.mkdir(parents=True, exist_ok=True)
         with sheet_file.open("x", encoding="utf-8") as file:  # never overwrites your grades
             file.write(sheet(answer_run, items))
-        print(f"Grade the {len(items)} Answers in {sheet_file}")
+        print(f"Grade the {len(items)} Answers in {sheet_file}, then run make judge-agreement")
+    else:
+        grades = read_grades(sheet_file.read_text(encoding="utf-8"))
+        with sheet_file.with_name(f"{run_file.stem}.json").open("x", encoding="utf-8") as file:
+            json.dump(grades, file, indent=2)
+            file.write("\n")
+        write_results(Path("eval"))
+        print("Judge agreement added to eval/RESULTS.md")

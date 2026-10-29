@@ -1,4 +1,4 @@
-.PHONY: lint test test-integration check-answer db-up db-reset data split ingest eval answer-eval grading-sheet
+.PHONY: lint test test-integration check-answer db-up db-reset data split ingest eval answer-eval grading-sheet judge-agreement
 
 lint:
 	uv run ruff check .
@@ -56,3 +56,7 @@ answer-eval:
 grading-sheet:
 	uv run python -m sec_filings_analyst.hand_grading sheet
 
+# Reads the filled-in sheet, saves the grades beside it as .json (ids and labels, no text; never
+# overwritten) and regenerates eval/RESULTS.md with the Judge's agreement.
+judge-agreement:
+	uv run python -m sec_filings_analyst.hand_grading grades
