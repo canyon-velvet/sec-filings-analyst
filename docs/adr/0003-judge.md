@@ -1,6 +1,6 @@
 # 3. Judge: two verdicts per Answer from a pinned gpt-5.4
 
-Date: 2026-10-27 · Status: accepted · Ticket: #36
+Date: 2026-10-27, validated 2026-10-29 · Status: accepted · Tickets: #36, #37
 
 ## Context
 
@@ -47,7 +47,7 @@ Citations too: an Answer can be right while claiming more than its excerpts say.
   as the instructions ask.
 - **The Judge agrees with the numeric check** on every numeric Answer it graded correct or
   incorrect, in both runs. That is one check of the Judge, on figures only; the hand-graded
-  sample (#37) checks it on the rest.
+  sample (#37) checks it on every question type.
 - **Faithfulness is strict:** 7 of `dense-headers`' 30 correct Answers are not supported. Each
   adds one claim its excerpts don't state, such as an interpretation of a segment's figures or
   an extra fact. That is the intended reading of "every claim", and the reason to keep the
@@ -56,13 +56,38 @@ Citations too: an Answer can be right while claiming more than its excerpts say.
   refuse a header mismatch. `keyword-bm25-headers` gives the widest retrieval gap on the same
   corpus.
 
+## Validation against hand grades (#37)
+
+The user graded 20 of `dense-headers`' dev Answers blind, drawn by type with the Split's seed
+(7 domain-relevant, 7 metrics-generated, 6 novel-generated).
+
+| Hand-graded | Agreement | domain-relevant | metrics-generated | novel-generated |
+|---|---|---|---|---|
+| 20 | 0.90 | 0.71 | 1.00 | 1.00 |
+
+- **The two disagreements cut both ways**, so both gradings give 11 correct, 5 incorrect and 4
+  refused on the sample. Both are domain-relevant Questions without a single-number answer,
+  where the numeric check can't help:
+  - `financebench_id_00566`, a yes/no on whether a debt total rose: the Answer opens with the
+    wrong yes, then works through the figures and concludes the right no. The Judge graded the
+    conclusion (correct); the user graded what a reader takes from the first word (incorrect).
+  - `financebench_id_01009`, a list of the regions a company operates in: the Answer puts one
+    broad region where FinanceBench lists several narrower ones, and leaves out one smaller
+    country. The Judge counted the missing names (incorrect); the user accepted the list as the
+    regions that matter (correct).
+- **Both are judgement calls the rubric leaves open**, not clear Judge mistakes: it says neither
+  how to grade an Answer that contradicts itself nor how complete a list must be.
+- **0.90 is high enough to keep the Judge prompt as it is**, though 20 Answers is a small
+  sample: one more disagreement would make it 0.85. If self-contradicting Answers recur, the
+  rubric should say whether the first claim or the conclusion counts.
+
 ## Alternatives
 
 - **One call for both verdicts:** cheaper, but the faithfulness verdict would see FinanceBench's
   answer and grade truth instead of support.
 - **gpt-5.4-mini as the Judge:** about a third of the cost, but the same model grading its own
   Answers is the setup most prone to self-preference.
-- **gpt-5.5:** twice the price; revisit if #37 finds the Judge unreliable.
+- **gpt-5.5:** twice the price; #37's 0.90 agreement doesn't call for it.
 - **Numeric check only:** deterministic, but it covers 17 of 50 dev Questions, and none of the
   explanations.
 
@@ -71,5 +96,7 @@ Citations too: an Answer can be right while claiming more than its excerpts say.
 - An answer run costs at most $1.96 on dev ($0.45 answering, $1.51 judging), shown before any
   call.
 - The Judge is checked twice: by the numeric check on every run, and once by the user's hand
-  grades (#37), whose agreement rate goes here.
+  grades (#37): 0.90 agreement. The grades are kept by Question id, so a later Judge model or
+  prompt that re-grades these same Answers can be compared without grading again; that needs a
+  re-judging command, which doesn't exist yet.
 - Unjudged verdicts count as not correct in accuracy; the Unjudged column shows how many.
