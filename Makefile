@@ -1,4 +1,4 @@
-.PHONY: lint test test-integration check-answer db-up db-reset data split ingest eval answer-eval
+.PHONY: lint test test-integration check-answer db-up db-reset data split ingest eval answer-eval grading-sheet
 
 lint:
 	uv run ruff check .
@@ -50,3 +50,9 @@ eval:
 # beside it, and regenerates eval/RESULTS.md.
 answer-eval:
 	uv run --group rerank --env-file .env python -m sec_filings_analyst.evaluation $(SPLIT) $(EXPERIMENT) answers
+
+# 20 of dev's dense-headers Answers, drawn with the Split's seed, into a gitignored Markdown sheet
+# (eval/hand_grades/financebench_v1/dev/dense-headers.sheet.local.md) for blind grading; no API calls.
+grading-sheet:
+	uv run python -m sec_filings_analyst.hand_grading sheet
+

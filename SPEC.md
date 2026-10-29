@@ -32,7 +32,7 @@ Vite + React + TS · no LangChain/LlamaIndex
 - [x] Reranker: dev Hit@5 0.32 (50 candidates), 0.30 (100) vs dense 0.40 (#30)
 - [x] Metadata filters + contextual headers: dev Hit@5 0.60 with oracle filters (an upper bound), 0.54 with headers, vs dense 0.40 (#31, #32)
 - [x] Cited Answers + answer evals: dev accuracy 0.60 with `dense-headers` vs 0.30 with `keyword-bm25-headers` (#33–#36)
-- [ ] Judge validation + test-Split report (#37, #38)
+- [ ] Judge validation + test-Split report (#37 in progress: blind grading sheet; #38)
 ### Week 3: agent tools (search, calculate) + loop · follow-ups · /chat SSE · chat UI (citations, agent-steps panel) · agent evals
 ### Week 4: EDGAR on-demand ingestion (ticker + form + year) · HTML parsing · section-based citations · fetch-filing agent tool
 ### Week 5: CI eval smoke · cost/latency · deploy · README results + demo
