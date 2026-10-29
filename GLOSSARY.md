@@ -65,6 +65,10 @@ _Avoid_: grader, evaluator
 One of the Judge's grades: a label and a one-sentence reason. Unjudged when the Judge's reply held no label. The reason can restate FinanceBench's answer, so it is never committed.
 _Avoid_: score, rating
 
+**Hand grade**:
+The user's own correctness grade of an Answer (correct, incorrect or refused), given without seeing the Judge's Verdict and committed by Question id. Agreement is the share of hand-graded Answers whose correctness Verdict is the same.
+_Avoid_: human label, ground truth
+
 ### Evaluation
 
 **Question**:
