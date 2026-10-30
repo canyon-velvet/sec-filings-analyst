@@ -16,6 +16,7 @@ Doc type and Fiscal year, which no user knows: an upper bound, not a result.
 | hybrid-rrf | financebench_v1/dev | 0.12 | 0.26 | 0.42 | 0.40 | 0.18 | 50 |
 | keyword-bm25-headers | financebench_v1/dev | 0.12 | 0.20 | 0.26 | 0.25 | 0.15 | 50 |
 | keyword-bm25 | financebench_v1/dev | 0.10 | 0.10 | 0.20 | 0.19 | 0.11 | 50 |
+| dense-headers | financebench_v1/test | 0.21 | 0.54 | 0.73 | 0.68 | 0.35 | 100 |
 
 ## Hit@5 by question type
 
@@ -30,6 +31,7 @@ Doc type and Fiscal year, which no user knows: an upper bound, not a result.
 | hybrid-rrf | financebench_v1/dev | 0.18 | 0.24 | 0.38 |
 | keyword-bm25-headers | financebench_v1/dev | 0.24 | 0.06 | 0.31 |
 | keyword-bm25 | financebench_v1/dev | 0.12 | 0.00 | 0.19 |
+| dense-headers | financebench_v1/test | 0.42 | 0.48 | 0.71 |
 
 # Answer results
 
@@ -45,6 +47,7 @@ replies without a verdict.
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | dense-headers | financebench_v1/dev | gpt-5.4-mini-2026-03-17 | gpt-5.4-2026-03-05 | 0.60 | 0.14 | 0.65 of 17 | 0.00 | 0.63 | 0.62 | 0 | 0 | 50 |
 | keyword-bm25-headers | financebench_v1/dev | gpt-5.4-mini-2026-03-17 | gpt-5.4-2026-03-05 | 0.30 | 0.40 | 0.12 of 17 | 0.00 | 0.47 | 0.22 | 0 | 0 | 50 |
+| dense-headers | financebench_v1/test | gpt-5.4-mini-2026-03-17 | gpt-5.4-2026-03-05 | 0.60 | 0.15 | 0.63 of 35 | 0.04 | 0.58 | 0.63 | 0 | 0 | 100 |
 
 # Judge validation
 
